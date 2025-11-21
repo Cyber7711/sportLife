@@ -7,8 +7,8 @@ require("colors");
 connectDB();
 app.use(express.json({ limit: "10kb" }));
 
-app.get((req, res) => {
-  res.sent("SportLife ishlayabdi");
+app.get("/", (req, res) => {
+  res.send("SportLife ishlayabdi");
 });
 
 const PORT = process.env.PORT || 3000;
