@@ -8,7 +8,7 @@ const signToken = (user) => {
   });
 };
 
-exports.register = async (req, res, next) => {
+const register = async (req, res, next) => {
   try {
     const { name, surename, phone, email, password, role } = req.body;
     const missingFields = [];
@@ -42,7 +42,7 @@ exports.register = async (req, res, next) => {
   }
 };
 
-exports.login = async (req, res, next) => {
+const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -63,3 +63,16 @@ exports.login = async (req, res, next) => {
     next(err);
   }
 };
+
+const getMe = async (req, res, next) => {
+  try {
+    const user = await User.findOne(req.user._id);
+    res.status(200).json({ status: "success", data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const authController = { register, login, getMe };
+
+module.exports = authController;
