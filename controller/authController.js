@@ -66,7 +66,7 @@ const login = async (req, res, next) => {
 
 const getMe = async (req, res, next) => {
   try {
-    const user = await User.findOne(req.user._id);
+    const user = await User.findById(req.user._id);
     res.status(200).json({ status: "success", data: user });
   } catch (err) {
     next(err);
