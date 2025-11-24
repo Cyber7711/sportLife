@@ -1,10 +1,10 @@
 const AppError = require("../utils/appError");
 const {
   handleCastErrorDB,
-  handleDublicateFieldsDB,
+  handleDuplicateFieldsDB,
   handleJWTError,
   handleValidationErrorDB,
-  handeJWTExpiredError,
+  handleJWTExpiredError,
 } = require("../controller/errorHandler");
 
 module.exports = (err, req, res, next) => {
@@ -16,21 +16,28 @@ module.exports = (err, req, res, next) => {
       status: err.status,
       message: err.message,
       error: err,
-      stack: err.stack,sonWebTokenError
+      stack: err.stack,
     });
   }
 
-  let error = { ...err };
-  error.message = err.message;
+  if (err.name === "CastError") err = handleCastErrorDB(err);
+  if (err.code === 11000) err = handleDuplicateFieldsDB(err);
+  if (err.name === "ValidationError") err = handleValidationErrorDB(err);
+  if (err.name === "JsonWebTokenError") err = handleJWTError();
+  if (err.name === "TokenExpiredError") err = handleJWTExpiredError();
 
-  if (err.name === "CastError") error = handleCastErrorDB(error);
-  if (err.code === 11000) error = handleDublicateFieldsDB(error);
-  if (err.name === "ValidationError") error = handleValidationErrorDB(error);
-  if (err.name === "JsonWebTokenError") error = handleJWTError();
-  if (err.name === "TokenExpiredError") error = handeJWTExpiredError();
+  if (process.env.NODE_ENV === "production") {
+    if (!err.isOperational && err.name.startsWith("JsonWebToken")) {
+      err = handleJWTError();
+      return res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message,
+      });
+    }
 
-  return res.status(error.statusCode).json({
-    status: error.status,
-    message: error.message || "nomalum xato yuz berdi",
-  });
+    console.error("Error", err, err.stack);
+    return res
+      .status(500)
+      .json({ status: "error", message: "Kutilmagan xatolik" });
+  }
 };

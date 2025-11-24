@@ -104,7 +104,6 @@ userSchema.methods.deactivate = function () {
 
 // Middleware
 userSchema.pre("save", async function (next) {
-  // Faqat password o'zgarganda hash qilish
   if (!this.isModified("password")) return next();
 
   this.password = await bcrypt.hash(this.password, 12);
@@ -115,7 +114,6 @@ userSchema.pre("save", async function (next) {
 userSchema.pre("save", function (next) {
   if (!this.isModified("password") || this.isNew) return next();
 
-  // Agar parol yangilansa, yangi hash yaratish kerak
   next();
 });
 
