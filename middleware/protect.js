@@ -12,9 +12,25 @@ exports.protect = async (req, res, next) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(payload.id);
     if (!user) throw new AppError("Foydalanuvchi topilmadi", 401);
+
+    if (user.passswordChangedAt) {
+      const changedAt = parseInt(user.passswordChangedAt.getTime() / 1000);
+      if (payload.iat < changedAt) {
+        return next(
+          new AppError("Token yaroqsiz. Iltimos qayta login qiling", 401)
+        );
+      }
+    }
+
     req.user = user;
     next();
   } catch (err) {
+    if (err.name === "JsonWebTokenError") {
+      return next(new AppError("Token notugri", 401));
+    }
+    if (err.name === "TokenExpiredError") {
+      return next(new AppError("Token muddati tugagan", 401));
+    }
     next(err);
   }
 };

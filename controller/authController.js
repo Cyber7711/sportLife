@@ -1,12 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../model/user");
 const AppError = require("../utils/appError");
-
-const signToken = (user) => {
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-  });
-};
+const { createAccessToken, createRefreshToken } = require("../utils/token");
 
 const register = async (req, res, next) => {
   try {
@@ -35,8 +30,15 @@ const register = async (req, res, next) => {
       role,
     });
 
-    const token = signToken(user);
-    res.status(201).json({ status: "success", token, data: user });
+    const accessToken = createAccessToken(user._id);
+    const refreshToken = createRefreshToken(user._id);
+
+    res.status(201).json({
+      status: "success",
+      accessToken,
+      refreshToken,
+      data: { id: user._id, email: user.email, role: user.role },
+    });
   } catch (err) {
     next(err);
   }
@@ -54,13 +56,34 @@ const login = async (req, res, next) => {
       throw new AppError("Email yoki password notugri", 401);
     }
 
-    user.lastLogin = Date.now();
-    await user.save();
+    const accessToken = createAccessToken(user._id);
+    const refreshToken = createRefreshToken(user._id);
 
-    const token = signToken(user);
-    res.status(200).json({ status: true, token, data: user });
+    res.status(200).json({
+      status: "success",
+      accessToken,
+      refreshToken,
+      data: { id: user._id, email: user.email, role: user.role },
+    });
   } catch (err) {
     next(err);
+  }
+};
+
+const refreshToken = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) throw new AppError("Refresh token mavjud emas", 401);
+
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(payload.id);
+    if (!user) throw new AppError("Foydalanuvchi topilmadi", 401);
+
+    const accessToken = createAccessToken(user._id);
+
+    res.status(200).json({ status: "success", accessToken });
+  } catch (err) {
+    return next(err);
   }
 };
 
@@ -73,6 +96,6 @@ const getMe = async (req, res, next) => {
   }
 };
 
-const authController = { register, login, getMe };
+const authController = { register, login, getMe, refreshToken };
 
 module.exports = authController;
