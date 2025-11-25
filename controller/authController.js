@@ -33,10 +33,16 @@ const register = async (req, res, next) => {
     const accessToken = createAccessToken(user._id);
     const refreshToken = createRefreshToken(user._id);
 
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     res.status(201).json({
       status: "success",
       accessToken,
-      refreshToken,
       data: { id: user._id, email: user.email, role: user.role },
     });
   } catch (err) {
@@ -62,7 +68,6 @@ const login = async (req, res, next) => {
     res.status(200).json({
       status: "success",
       accessToken,
-      refreshToken,
       data: { id: user._id, email: user.email, role: user.role },
     });
   } catch (err) {
@@ -72,7 +77,7 @@ const login = async (req, res, next) => {
 
 const refreshToken = async (req, res, next) => {
   try {
-    const { token } = req.body;
+    const token = req.cookies.refreshToken;
     if (!token) throw new AppError("Refresh token mavjud emas", 401);
 
     const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);

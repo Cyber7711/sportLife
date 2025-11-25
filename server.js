@@ -7,10 +7,12 @@ const morgan = require("morgan");
 const globalErrorHandler = require("./middleware/globalErrorHandler.js");
 const AppError = require("./utils/appError");
 const authRoutes = require("./routes/authRoutes.js");
+const cookies = require("cookies");
 
 connectDB();
 if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
 app.use(express.json({ limit: "10kb" }));
+app.use(cookies());
 
 app.get("/", (req, res) => {
   res.send("SportLife ishlayabdi");

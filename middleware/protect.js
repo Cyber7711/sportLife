@@ -13,8 +13,8 @@ exports.protect = async (req, res, next) => {
     const user = await User.findById(payload.id);
     if (!user) throw new AppError("Foydalanuvchi topilmadi", 401);
 
-    if (user.passswordChangedAt) {
-      const changedAt = parseInt(user.passswordChangedAt.getTime() / 1000);
+    if (user.passwordChangedAt) {
+      const changedAt = parseInt(user.passwordChangedAt.getTime() / 1000);
       if (payload.iat < changedAt) {
         return next(
           new AppError("Token yaroqsiz. Iltimos qayta login qiling", 401)

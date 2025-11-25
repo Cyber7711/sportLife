@@ -79,7 +79,7 @@ async function deleteCoach(id) {
   }
 }
 
-const coachService = {
+const CoachService = {
   createCoach,
   getAllCoaches,
   getCoachById,
@@ -87,4 +87,4 @@ const coachService = {
   deleteCoach,
 };
 
-module.exports = coachService;
+module.exports = CoachService;
