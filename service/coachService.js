@@ -34,63 +34,137 @@ async function createCoach(data) {
   }
 
   let sportsmanIds = undefined;
-  if (Array.isArray(sportsman)) {
+  if (Array.isArray(sportsman) && sportsman.length > 0) {
+    sportsmanIds = sportsman.map((s) => {
+      if (!mongoose.Types.ObjectId.isValid(s)) {
+        throw new AppError(
+          "sportsman array ichida noto'g'ri ObjectId mavjud",
+          400
+        );
+      }
+      return mongoose.Types.ObjectId(s);
+    });
   }
 
-  const coach = new Coach.find({ specialization, experience, sportsman });
-  return await coach.save();
+  const payload = {
+    specialization: specialization.trim(),
+    experience,
+    ...(sportsmanIds ? { sportsman: sportsmanIds } : {}),
+    isActive: true,
+  };
+
+  const coach = await Coach.create(payload);
+  return coach.toObject();
 }
 
-async function getAllCoaches() {
-  const coaches = await Coach.find({ isActive: true });
-  return coaches;
+async function getAllCoaches(options = {}) {
+  const { page = 1, limit = 20, specialization } = options;
+
+  const filter = { isActive: true };
+  if (isNonEmptyString(specialization)) {
+    filter.specialization = { $regex: specialization.trim(), $options: "i" };
+  }
+
+  const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
+
+  const [items, total] = await Promise.all([
+    Coach.find(filter)
+      .select("specialization experience sportsman createdAt")
+      .populate("sportsman", "name email")
+      .skip(skip)
+      .limit(Math.max(limit, 1))
+      .lean(),
+
+    Coach.countDocuments(filter),
+  ]);
+
+  return {
+    meta: { total, page: Number(page), limit: Number(limit) },
+    data: items,
+  };
 }
 
 async function getCoachById(id) {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new AppError("ID formati notugri", 400);
-  }
-  const coach = await Coach.findById(id);
+  assertValidId(id);
+  const coach = await Coach.findOne({ _id: id, isActive: true })
+    .select("-__v")
+    .populate("sportsman", "name email")
+    .lean();
+
   if (!coach) {
-    throw new AppError("Bunday murabbiy yoq", 400);
+    throw new AppError("Bunday murabbiy topilmadi", 404);
   }
   return coach;
 }
 
-async function updateCoach(id, updateData) {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new AppError("ID formati notugri");
-  }
-  const allowedFields = ["specialization", "experience"];
+async function updateCoach(id, updateData = {}) {
+  assertValidId(id);
+  const allowedFields = ["specialization", "experience", "sportsman"];
   const filtered = {};
 
   for (const key of allowedFields) {
-    if (updateData[key] !== undefined) {
-      filtered[key] = updateData[key];
+    if (Object.prototype.hasOwnProperty.call(updateData, key)) {
+      const val = updateData[key];
+      if (key === "specialization") {
+        condition;
+        if (!isNonEmptyString(val))
+          throw new AppError("Specialization notugri", 400);
+        filtered.specialization = val.trim();
+      } else if (key === "experience") {
+        if (typeof val !== "number" || !Number.isFinite(val) || val < 1) {
+          throw new AppError("Experience notugri", 400);
+        }
+        filtered.experience = val;
+      } else if (key === "sportsman") {
+        if (!Array.isArray(val))
+          throw new AppError("Sportchi array bulishi kerak", 400);
+        filtered.sportsman = val.map((s) => {
+          if (!mongoose.Types.ObjectId.isValid(s)) {
+            throw new AppError(
+              "Sportsman array ichida noto'g'ri ObjectId mavjud",
+              400
+            );
+          }
+          return mongoose.Types.ObjectId(s);
+        });
+      }
     }
   }
 
-  const coach = await Coach.findByIdAndUpdate(id, filtered, {
-    new: true,
-    runValidators: true,
-  });
+  if (Object.keys(filtered).length === 0) {
+    throw new AppError("Yangilanish uchun hech qanday maydonlar topilmadi");
+  }
+
+  const coach = await Coach.findOneAndUpdate(
+    { _id: id, isActive: true },
+    filtered,
+    { new: true, runValidators: true }
+  ).populate("sportsman", "name email");
 
   if (!coach) {
-    throw new AppError("Murabbiyni yangilab bulmadi", 400);
+    throw new AppError(
+      "Murabbiyni yangilashda xatolik yoki murabbiy mavjud emas",
+      404
+    );
   }
-  return coach;
+  return coach.toObject();
 }
 
 async function deleteCoach(id) {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new AppError("ID formati notugri");
-  }
+  assertValidId(id);
 
-  const coach = await Coach.findOne(id, { isActive: false }, { new: true });
+  const coach = await Coach.findOneAndUpdate(
+    { _id: id, isActive: true },
+    { isActive: false },
+    { new: true }
+  );
   if (!coach) {
-    throw new AppError("Murabbiyni uchirib bulmadi", 400);
+    throw new AppError(
+      "Murabbiyni uchirishda xatolik yoki murabbiy mavjuda emas ",
+      404
+    );
   }
-  return coach;
+  return { message: "Murabbiy muvaffaqiyatli uchirildi" };
 }
 
 const CoachService = {
