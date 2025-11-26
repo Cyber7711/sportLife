@@ -1,22 +1,43 @@
-const { default: mongoose } = require("mongoose");
+const mongoose = require("mongoose");
 const AppError = require("../utils/appError");
 const Coach = require("../model/coach");
 
+function assertValidId(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError("ID formati notugri", 400);
+  }
+}
+
+function isNonEmptyString(v) {
+  return typeof v === "string" && v.trim().length > 0;
+}
+
 async function createCoach(data) {
-  const { specialization, experience } = data;
-  const missingFields = [];
+  const { specialization, experience, sportsman } = data;
+  const missing = [];
 
-  if (!specialization) missingFields.push("specialization");
-  if (!experience) missingFields.push("experience");
+  if (!isNonEmptyString(specialization)) missing.push("specialization");
+  if (
+    typeof experience !== "number" ||
+    !Number.isFinite(experience) ||
+    experience < 1
+  )
+    missing.push("experience");
 
-  if (missingFields.length > 0) {
+  if (missing.length > 0) {
     throw new AppError(
-      `Quyidagi maydon(lar) tuldirilmagan: ${missingFields.join(", ")}`,
+      `Quyidagi maydon(lar) to'ldirilmagan yoki noto'g'ri: ${missing.join(
+        ", "
+      )}`,
       400
     );
   }
 
-  const coach = new Coach.find({ specialization, experience });
+  let sportsmanIds = undefined;
+  if (Array.isArray(sportsman)) {
+  }
+
+  const coach = new Coach.find({ specialization, experience, sportsman });
   return await coach.save();
 }
 
@@ -65,18 +86,11 @@ async function deleteCoach(id) {
     throw new AppError("ID formati notugri");
   }
 
-  const coach = await Coach.findByIdAndUpdate(
-    id,
-    { isActive: false },
-    { new: true }
-  );
+  const coach = await Coach.findOne(id, { isActive: false }, { new: true });
   if (!coach) {
     throw new AppError("Murabbiyni uchirib bulmadi", 400);
   }
-  return;
-  {
-    message: "Murabbiy muvaffaqiyatli uchirildi";
-  }
+  return coach;
 }
 
 const CoachService = {
