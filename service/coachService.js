@@ -1,22 +1,14 @@
 const mongoose = require("mongoose");
 const AppError = require("../utils/appError");
 const Coach = require("../model/coach");
-
-function assertValidId(id) {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new AppError("ID formati notugri", 400);
-  }
-}
-
-function isNonEmptyString(v) {
-  return typeof v === "string" && v.trim().length > 0;
-}
+const validators = require("../utils/validators");
 
 async function createCoach(data) {
   const { specialization, experience, sportsman } = data;
   const missing = [];
 
-  if (!isNonEmptyString(specialization)) missing.push("specialization");
+  if (!validators.isNonEmptyString(specialization))
+    missing.push("specialization");
   if (
     typeof experience !== "number" ||
     !Number.isFinite(experience) ||
@@ -35,17 +27,8 @@ async function createCoach(data) {
 
   let sportsmanIds = undefined;
   if (Array.isArray(sportsman) && sportsman.length > 0) {
-    sportsmanIds = sportsman.map((s) => {
-      if (!mongoose.Types.ObjectId.isValid(s)) {
-        throw new AppError(
-          "sportsman array ichida noto'g'ri ObjectId mavjud",
-          400
-        );
-      }
-      return mongoose.Types.ObjectId(s);
-    });
+    sportsmanIds = validators.assertSportsmanArray(sportsman);
   }
-
   const payload = {
     specialization: specialization.trim(),
     experience,
@@ -61,7 +44,7 @@ async function getAllCoaches(options = {}) {
   const { page = 1, limit = 20, specialization } = options;
 
   const filter = { isActive: true };
-  if (isNonEmptyString(specialization)) {
+  if (validators.isNonEmptyString(specialization)) {
     filter.specialization = { $regex: specialization.trim(), $options: "i" };
   }
 
@@ -85,7 +68,7 @@ async function getAllCoaches(options = {}) {
 }
 
 async function getCoachById(id) {
-  assertValidId(id);
+  validators.assertValidId(id);
   const coach = await Coach.findOne({ _id: id, isActive: true })
     .select("-__v")
     .populate("sportsman", "name email")
@@ -98,7 +81,7 @@ async function getCoachById(id) {
 }
 
 async function updateCoach(id, updateData = {}) {
-  assertValidId(id);
+  validators.assertValidId(id);
   const allowedFields = ["specialization", "experience", "sportsman"];
   const filtered = {};
 
@@ -107,7 +90,7 @@ async function updateCoach(id, updateData = {}) {
       const val = updateData[key];
       if (key === "specialization") {
         condition;
-        if (!isNonEmptyString(val))
+        if (!validators.isNonEmptyString(val))
           throw new AppError("Specialization notugri", 400);
         filtered.specialization = val.trim();
       } else if (key === "experience") {
@@ -151,7 +134,7 @@ async function updateCoach(id, updateData = {}) {
 }
 
 async function deleteCoach(id) {
-  assertValidId(id);
+  validators.assertValidId(id);
 
   const coach = await Coach.findOneAndUpdate(
     { _id: id, isActive: true },
