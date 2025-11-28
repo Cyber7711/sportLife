@@ -11,7 +11,7 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function isPositiveNUmber(value) {
+function isPositiveNumber(value) {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
@@ -29,7 +29,7 @@ function assertSportsmanArray(arr) {
 }
 
 const validators = {
-  isPositiveNUmber,
+  isPositiveNumber,
   assertValidId,
   assertSportsmanArray,
   isNonEmptyString,

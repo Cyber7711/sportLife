@@ -1,7 +1,6 @@
-const mongoose = require("mongoose");
 const AppError = require("../utils/appError");
-const Coach = require("../model/coach");
 const validators = require("../utils/validators");
+const coachRepository = require("../repositories/coachRepository");
 
 async function createCoach(data) {
   const { specialization, experience, sportsman } = data;
@@ -9,12 +8,7 @@ async function createCoach(data) {
 
   if (!validators.isNonEmptyString(specialization))
     missing.push("specialization");
-  if (
-    typeof experience !== "number" ||
-    !Number.isFinite(experience) ||
-    experience < 1
-  )
-    missing.push("experience");
+  if (!validators.isPositiveNumber(experience)) missing.push("experience");
 
   if (missing.length > 0) {
     throw new AppError(
@@ -25,7 +19,7 @@ async function createCoach(data) {
     );
   }
 
-  let sportsmanIds = undefined;
+  let sportsmanIds;
   if (Array.isArray(sportsman) && sportsman.length > 0) {
     sportsmanIds = validators.assertSportsmanArray(sportsman);
   }
@@ -36,7 +30,7 @@ async function createCoach(data) {
     isActive: true,
   };
 
-  const coach = await Coach.create(payload);
+  const coach = await coachRepository.create(payload);
   return coach.toObject();
 }
 
@@ -51,7 +45,8 @@ async function getAllCoaches(options = {}) {
   const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
 
   const [items, total] = await Promise.all([
-    Coach.find(filter)
+    coachRepository
+      .findAll(filter)
       .select("specialization experience sportsman createdAt")
       .populate("sportsman", "name email")
       .skip(skip)
@@ -69,7 +64,8 @@ async function getAllCoaches(options = {}) {
 
 async function getCoachById(id) {
   validators.assertValidId(id);
-  const coach = await Coach.findOne({ _id: id, isActive: true })
+  const coach = await coachRepository
+    .findById({ _id: id, isActive: true })
     .select("-__v")
     .populate("sportsman", "name email")
     .lean();
@@ -118,11 +114,12 @@ async function updateCoach(id, updateData = {}) {
     throw new AppError("Yangilanish uchun hech qanday maydonlar topilmadi");
   }
 
-  const coach = await Coach.findOneAndUpdate(
-    { _id: id, isActive: true },
-    filtered,
-    { new: true, runValidators: true }
-  ).populate("sportsman", "name email");
+  const coach = await coachRepository
+    .update({ _id: id, isActive: true }, filtered, {
+      new: true,
+      runValidators: true,
+    })
+    .populate("sportsman", "name email");
 
   if (!coach) {
     throw new AppError(
@@ -136,7 +133,7 @@ async function updateCoach(id, updateData = {}) {
 async function deleteCoach(id) {
   validators.assertValidId(id);
 
-  const coach = await Coach.findOneAndUpdate(
+  const coach = await coachRepository.deleteById(
     { _id: id, isActive: true },
     { isActive: false },
     { new: true }
