@@ -1,40 +1,27 @@
 const Coach = require("../model/coach");
 
-async function create(data) {
-  const coach = await Coach.create(data);
-  return coach;
-}
+const baseQuery = () => Coach.find();
 
-async function findAll(filter = {}) {
-  const finalFilter = { isActive: true, ...filter };
-  return await Coach.find(finalFilter);
-}
+const create = (data) => Coach.create(data);
 
-async function findById(id) {
-  const coach = await Coach.findOne({ _id: id, isActive: true });
-  return coach;
-}
+const findAll = (filter = {}) => Coach.find(filter);
 
-async function update(id, updateData) {
-  const coach = await Coach.findByIdAndUpdate(id, updateData, { new: true });
-  return coach;
-}
+const findOne = (filter = {}) => Coach.findOne(filter);
 
-async function deleteById(id) {
-  const coach = await Coach.findByIdAndUpdate(
-    id,
-    { isActive: false },
-    { new: true }
-  );
-  return coach;
-}
+const findById = (id) => Coach.findById(id);
 
-const coachRepository = {
+const update = (id, updateData, options = { new: true }) =>
+  Coach.findOneAndUpdate({ _id: id }, updateData, options);
+
+const deleteById = (id) =>
+  Coach.findOneAndUpdate({ _id: id }, { isActive: false }, { new: true });
+
+module.exports = {
+  baseQuery,
   create,
   findAll,
+  findOne,
   findById,
   update,
   deleteById,
 };
-
-module.exports = coachRepository;

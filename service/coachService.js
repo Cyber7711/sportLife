@@ -1,6 +1,8 @@
 const AppError = require("../utils/appError");
+const mongoose = require("mongoose");
 const validators = require("../utils/validators");
 const coachRepository = require("../repositories/coachRepository");
+const Coach = require("../model/coach");
 
 async function createCoach(data) {
   const { specialization, experience, sportsman } = data;
@@ -65,7 +67,7 @@ async function getAllCoaches(options = {}) {
 async function getCoachById(id) {
   validators.assertValidId(id);
   const coach = await coachRepository
-    .findById({ _id: id, isActive: true })
+    .findOne({ _id: id, isActive: true })
     .select("-__v")
     .populate("sportsman", "name email")
     .lean();
@@ -80,12 +82,16 @@ async function updateCoach(id, updateData = {}) {
   validators.assertValidId(id);
   const allowedFields = ["specialization", "experience", "sportsman"];
   const filtered = {};
+  const existing = await coachRepository.findOne({ _id: id, isActive: true });
+
+  if (!existing) {
+    throw new AppError("Murabbiy mavjud emas", 404);
+  }
 
   for (const key of allowedFields) {
     if (Object.prototype.hasOwnProperty.call(updateData, key)) {
       const val = updateData[key];
       if (key === "specialization") {
-        condition;
         if (!validators.isNonEmptyString(val))
           throw new AppError("Specialization notugri", 400);
         filtered.specialization = val.trim();
@@ -115,7 +121,7 @@ async function updateCoach(id, updateData = {}) {
   }
 
   const coach = await coachRepository
-    .update({ _id: id, isActive: true }, filtered, {
+    .update(id, filtered, {
       new: true,
       runValidators: true,
     })
@@ -133,12 +139,10 @@ async function updateCoach(id, updateData = {}) {
 async function deleteCoach(id) {
   validators.assertValidId(id);
 
-  const coach = await coachRepository.deleteById(
-    { _id: id, isActive: true },
-    { isActive: false },
-    { new: true }
-  );
-  if (!coach) {
+  const coach = await coachRepository.findOne({ _id: id, isActive: true });
+  if (!coach) throw new AppError("Murabbiy mavjud emas", 404);
+  const deleted = await coachRepository.deleteById(id);
+  if (!deleted) {
     throw new AppError(
       "Murabbiyni uchirishda xatolik yoki murabbiy mavjuda emas ",
       404

@@ -4,17 +4,11 @@ const Sportsman = require("../model/sportsman");
 
 async function createSportsman(data) {
   const { sportType, coach, height, weight, achievements } = data;
-  const missingFields = [];
+  const missing = [];
 
-  if (!sportType) missingFields.push("sportType");
-  if (!coach) missingFields.push("coach");
-  if (!height) missingFields.push("height");
-  if (!weight) missingFields.push("weight");
-  if (!achievements) missingFields.push("achievements");
-
-  if (missingFields.length > 0) {
+  if (missing.length > 0) {
     throw new AppError(
-      `Quyidagi maydon(lar) tuldirilmagan: ${missingFields.join(", ")} `,
+      `Quyidagi maydon(lar) tuldirilmagan: ${missing.join(", ")} `,
       400
     );
   }
