@@ -16,6 +16,22 @@ const authRoutes = require("./routes/authRoutes.js");
 const cookies = require("cookies");
 
 connectDB();
+app.use(rateLimit);
+
+const limiter = rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000,
+  message: "Juda kop surovlar yuborildi. Keyinroq qayta urinib kuring ",
+});
+
+app.use("/api", limiter);
+app.set("trust proxy", 1);
+
+const authLimiter = rateLimit({
+  max: 10,
+  windowMs: 15 * 60 * 1000,
+  message: "Kop urunishlar. 15 daqiqadan keyin qayta urunib kuring",
+});
 
 if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
 app.use(express.json({ limit: "10kb" }));
@@ -23,7 +39,7 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? "https://texnikum.uz"
+        ? "https://sportlife.uz"
         : "http://localhost:4000",
     credentials: true,
   })
@@ -35,34 +51,32 @@ app.use(hpp());
 const routesPath = path.join(__dirname, "routes");
 const routeFiles = fs.readdirSync(routesPath);
 const filtered = routeFiles.filter(
-  (f) => f.endsWith("Routes.js") && f !== "authRoutes"
+  (f) => f.endsWith("Routes.js") && f !== "authRoutes.js"
 );
 
-console.log("Loaded route file:", filtered);
+if (process.env.NODE_ENV === "development") {
+  console.log("Loaded route file:", filtered);
+}
 
 for (const file of filtered) {
   const routeName = file.replace("Routes.js", "");
   const route = require(path.join(routesPath, file));
-  app.use(`/${routeName}`, route);
+  app.use(`/api/v1/${routeName}`, route);
 }
 
-const limiter = rateLimit({
-  max: 100,
-  windowMs: 60 * 60 * 1000,
-  message: "Juda kop surovlar yuborildi. Keyinroq qayta urinib kuring ",
-});
-
-app.use("/api", limiter);
-app.set("trust proxy", 1);
+app.use("/auth", authLimiter, authRoutes);
 
 app.get("/", (req, res) => {
-  res.status(200).json({ sucess: true, message: "SportLife ishlayabdi" });
+  res.send("SportLife ishlayabdi");
 });
 
-app.use("/api/v1/auth", authRoutes);
+app.use((err, req, res, next) => {
+  console.error("Xatolik:".red, err.stack);
+  res.status(500).json({ message: err.message });
+});
 
-app.all(" ", (req, res, next) => {
-  next(new AppError(`Bu URL topilmadi: ${req.originalUrl}`, 404));
+app.use((req, res, next) => {
+  next(new AppError(`Bu URL topilmadi: ${req.originalUrl}`.red, 404));
 });
 
 app.use(globalErrorHandler);

@@ -15,7 +15,7 @@ const createCoach = async (req, res, next) => {
 
 const getAllCoaches = async (req, res, next) => {
   try {
-    const result = await CoachService.getAllCoaches();
+    const result = await CoachService.getAllCoaches(req.query);
     if (!result?.data?.length === 0) {
       res.status(200).json({
         message: "Hozircha murabbiylar yuq",
