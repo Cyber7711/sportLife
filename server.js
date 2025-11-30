@@ -13,32 +13,50 @@ const slowDown = require("express-slow-down");
 const globalErrorHandler = require("./middleware/globalErrorHandler.js");
 const AppError = require("./utils/appError");
 const authRoutes = require("./routes/authRoutes.js");
-const { redisClient, createLimiter } = require("./config/rateLimiter.js");
+const { createIPLimiter } = require("./config/rateLimiter.js");
 
+// ================================
+// 1) DB ulash
+// ================================
 connectDB();
 
+// ================================
+// 2) Trust Proxy (RATE-LIMIT uchun muhim)
+// ================================
+app.set("trust proxy", 1);
+
+// ================================
+// 3) Speed Limiter (Global API slowdown)
+// ================================
 const speedLimiter = slowDown({
-  windowsMs: 15 * 60 * 1000,
-  delayAfter: 100,
-  delayMs: 500,
+  windowMs: 15 * 60 * 1000,
+  delayAfter: 200,
+  delayMs: () => 1500, // ux-friendly bo'lishi uchun pasaytirildi
 });
 
+// ================================
+// 4) CORS
+// ================================
 const allowedOrigins = ["http://sportlife.uz", "http://localhost:4000"];
 
-if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
-app.use(express.json({ limit: "10kb" }));
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+        return callback(null, true);
       }
+      return callback(null, false); // 403 o‘rniga
     },
     credentials: true,
   })
 );
+
+// ================================
+// 5) Middleware
+// ================================
+if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
+app.use(express.json({ limit: "10kb" }));
+
 if (process.env.NODE_ENV === "production") {
   app.use(helmet());
 } else {
@@ -48,15 +66,14 @@ if (process.env.NODE_ENV === "production") {
 app.use(hpp());
 app.use(speedLimiter);
 
+// ================================
+// 6) Dynamic routes
+// ================================
 const routesPath = path.join(__dirname, "routes");
 const routeFiles = fs.readdirSync(routesPath);
 const filtered = routeFiles.filter(
   (f) => /^[a-zA-Z]+Routes\.js$/.test(f) && f !== "authRoutes.js"
 );
-
-if (process.env.NODE_ENV === "development") {
-  console.log("Loaded route file:", filtered);
-}
 
 for (const file of filtered) {
   const routeName = file.replace("Routes.js", "");
@@ -64,21 +81,26 @@ for (const file of filtered) {
   app.use(`/api/v1/${routeName}`, route);
 }
 
+// ================================
+// 7) AUTH LIMITER (faqat auth uchun, 15min / 10 attempts)
+// ================================
 app.use(
   "/auth",
-  speedLimiter,
-  createLimiter({
-    windowsMs: 15 * 60 * 1000,
+  createIPLimiter({
+    windowMs: 15 * 60 * 1000,
     max: 10,
     message: {
-      error: "Kop urunishlar. 15 daqiqadan keyin qayta urunib kuring",
+      error: "Ko'p urunishlar. 15 daqiqadan keyin qayta urinib ko‘ring.",
     },
   }),
   authRoutes
 );
 
+// ================================
+// 8) Root & Error Handler
+// ================================
 app.get("/", (req, res) => {
-  res.send("SportLife ishlayabdi");
+  res.send("SportLife ishlayapti");
 });
 
 app.use((req, res, next) => {
@@ -87,8 +109,11 @@ app.use((req, res, next) => {
 
 app.use(globalErrorHandler);
 
+// ================================
+// 9) Server ishga tushish
+// ================================
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`server ${PORT} da ishga tushdi`);
+  console.log(`Server ${PORT} da ishga tushdi`);
 });

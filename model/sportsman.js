@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("./user");
+const Coach = require("./coach");
 
 const achievementsSchema = new mongoose.Schema(
   {
@@ -8,43 +9,49 @@ const achievementsSchema = new mongoose.Schema(
       required: [true, "Yutuq kiritilishi shart"],
       trim: true,
     },
-    year: { type: Number, min: 1900, max: new Date().getFullYear() },
+    year: {
+      type: Number,
+      min: [1900, "Yutuq yili 1900-yildan past bulmasligi kerak"],
+      max: new Date().getFullYear(),
+    },
   },
   { _id: false }
 );
 
-const sportsmanSchema = new mongoose.Schema({
-  sportType: {
-    type: String,
-    required: [true, "Sport turi kiritilishi shart"],
-    trim: true,
+const sportsmanSchema = new mongoose.Schema(
+  {
+    sportType: {
+      type: String,
+      required: [true, "Sport turi kiritilishi shart"],
+      trim: true,
+    },
+    coach: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Coach",
+      required: [true, "Murabbiy ID si kiritilishi shart"],
+    },
+    weight: {
+      type: Number,
+      min: [30, "Vazn 30 kg dan kam bulmasligi kerak"],
+      max: [150, "Vazn 150 kg dan kop bulmasligi kerak"],
+      required: [true, "Vazn kiritilishi shart"],
+    },
+    height: {
+      type: Number,
+      min: [100, "Boyninggiz 100 sm dan kam bulmasligi kerak"],
+      max: [200, "Boyninggiz 200 sm dan baland bulmasligi kerak"],
+      required: [true, "Boy uzunligi kiritilishi shart"],
+    },
+    achievements: [achievementsSchema],
   },
-  coach: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Coach",
-    required: [true, "Murabbiy ID si kiritilishi shart"],
-  },
-  height: {
-    type: Number,
-    min: [30, "Vazn 30 kg dan kam bulmasligi kerak"],
-    max: [150, "Vazn 150 kg dan kop bulmasligi kerak"],
-    required: [true, "Vazn kiritilishi shart"],
-  },
-  weight: {
-    type: Number,
-    min: [100, "Boyninggiz 100 sm dan kam bulmasligi kerak"],
-    max: [200, "Boyninggiz 200 sm dan baland bulmasligi kerak"],
-    required: [true, "Boy uzunligi kiritilishi shart"],
-  },
-  achievements: [achievementsSchema],
-});
+  { timestamps: true }
+);
 
 const Sportsman = User.discriminator("Sportsman", sportsmanSchema);
 
-sportsmanSchema.pre("save", async function (doc) {
-  const Coach = require("./coach");
-  await Coach.findByIdAndUpdate(doc.coach, {
-    $addToSet: { sportsman: doc._id },
+sportsmanSchema.pre("save", async function () {
+  await Coach.findByIdAndUpdate(this.coach, {
+    $addToSet: { sportsman: this._id },
   });
 });
 
