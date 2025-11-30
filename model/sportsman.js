@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const User = require("./user");
 const Coach = require("./coach");
+const AppError = require("../utils/appError");
 
 const achievementsSchema = new mongoose.Schema(
   {
@@ -47,12 +48,19 @@ const sportsmanSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Sportsman = User.discriminator("Sportsman", sportsmanSchema);
-
 sportsmanSchema.pre("save", async function () {
-  await Coach.findByIdAndUpdate(this.coach, {
-    $addToSet: { sportsman: this._id },
-  });
+  const coach = await Coach.findByIdAndUpdate(
+    this.coach,
+    {
+      $addToSet: { sportsman: this._id },
+    },
+    { new: true }
+  );
+  if (!coach) {
+    throw new AppError("Murabbiy topilmadi yoki mavjud emas");
+  }
 });
+
+const Sportsman = User.discriminator("Sportsman", sportsmanSchema);
 
 module.exports = Sportsman;
