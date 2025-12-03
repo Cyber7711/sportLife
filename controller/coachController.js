@@ -16,13 +16,14 @@ const createCoach = async (req, res, next) => {
 const getAllCoaches = async (req, res, next) => {
   try {
     const result = await CoachService.getAllCoaches(req.query);
-    if (!result?.data?.length === 0) {
+    if (!result?.data?.length) {
       res.status(200).json({
+        success: true,
         message: "Hozircha murabbiylar yuq",
         data: [],
       });
     }
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Murabbiylar muvaffqiyatli topildi",
       data: result,
@@ -49,12 +50,13 @@ const getCoachById = async (req, res, next) => {
 const updateCoach = async (req, res, next) => {
   try {
     const result = await CoachService.updateCoach(req.params.id, req.body);
-
-    res.status(200).json({
-      success: true,
-      message: "Murabbiy muvaffaqiyatli yangilandi ",
-      data: result,
-    });
+    res
+      .status(200)
+      .json({
+        sucess: true,
+        message: "Murabbiy muvaffaqiyatli yangilandi",
+        data: result,
+      });
   } catch (err) {
     return next(err);
   }
@@ -63,9 +65,7 @@ const updateCoach = async (req, res, next) => {
 const deleteCoach = async (req, res, next) => {
   try {
     const result = await CoachService.deleteCoach(req.params.id);
-    res
-      .status(200)
-      .json({ success: true, message: "Murabbiy muvaffaqiyatli uchirildi" });
+    res.status(204).set("X-Message", "Murabbiy muvaffaqiyatli uchirildi").end();
   } catch (err) {
     return next(err);
   }

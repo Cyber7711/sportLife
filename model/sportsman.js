@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const User = require("./user");
 const Coach = require("./coach");
 const AppError = require("../utils/appError");
 
@@ -46,7 +45,6 @@ const sportsmanSchema = new mongoose.Schema(
           "Voleybol",
           "Boks",
           "Kurash",
-          "Judo",
           "Taekvondo",
           "Sambo",
           "Og'ir atletika",
@@ -57,7 +55,7 @@ const sportsmanSchema = new mongoose.Schema(
           "Dzyudo",
           "Karate",
         ],
-        message: `Bunday Sport turi mavjud emas: ${values} `,
+        message: (props) => `Bunday Sport turi mavjud emas: ${props.value} `,
       },
     },
     coach: {
@@ -67,7 +65,7 @@ const sportsmanSchema = new mongoose.Schema(
       validate: {
         validator: async function (coachId) {
           const coach = await mongoose.model("Coach").findById(coachId);
-          return coach != null && coach.isActive !== false;
+          return coach != null && coach && coach.isActive === true;
         },
         message: "Tanlangan murabbiy faol emas yoki mavjud emas",
       },
@@ -95,6 +93,7 @@ const sportsmanSchema = new mongoose.Schema(
       type: [achievementsSchema],
       validate: {
         validator: (v) => v.length <= 50,
+        message: "Yutuqlar soni 50 tadan oshmasligi kerak",
       },
     },
     category: {
@@ -104,10 +103,10 @@ const sportsmanSchema = new mongoose.Schema(
     },
     medicalInfo: {
       bloodType: {
-        Type: String,
+        type: String,
         enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
       },
-      allergies: [String],
+      allergies: { type: [String], default: [] },
       chronicDiseases: [String],
       lastMedicalCheck: Date,
     },
@@ -116,9 +115,12 @@ const sportsmanSchema = new mongoose.Schema(
       default: true,
       select: false,
     },
+    birthDate: {
+      type: Date,
+    },
   },
 
-  { timestamps: true, toJSON: { virtuals: true }, toObjec: { virtuals: true } }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
 sportsmanSchema.index({ coach: 1 }), sportsmanSchema.index({ sportType: 1 });
@@ -136,19 +138,46 @@ sportsmanSchema.virtual("age").get(function () {
   return age;
 });
 
-sportsmanSchema.pre("save", async function () {
-  const coach = await Coach.findByIdAndUpdate(
-    this.coach,
-    {
-      $addToSet: { sportsman: this._id },
-    },
-    { new: true }
-  );
-  if (!coach) {
-    throw new AppError("Murabbiy topilmadi yoki mavjud emas");
+sportsmanSchema.pre("save", async function (next) {
+  if (this.isNew || this.isModified("coach")) {
+    try {
+      if (!this.isNew) {
+        const old = await this.constructor.findById(this._id).select("coach");
+        if (old && old.coach && !old.coach.equals(this.coach)) {
+          await Coach.updateOne(
+            { _id: old.coach },
+            { $pull: { sportsman: this._id } }
+          );
+        }
+      }
+
+      const result = await Coach.updateOne(
+        { _id: this.coach, isActive: true },
+        { $addToSet: { sportsman: this._id } }
+      );
+
+      if (result.matchedCount === 0) {
+        return next(new AppError("Murabbiy topilmadi yoki faol emas", 400));
+      }
+    } catch (err) {
+      return next(err);
+    }
   }
+  next();
 });
 
-const Sportsman = User.discriminator("Sportsman", sportsmanSchema);
+sportsmanSchema.methods.getPublicProfile = function (isAdmin = false) {
+  const profile = this.toObject();
+  delete profile.isActive;
+  delete profile.__v;
+  if (!this.isAdmin) {
+    delete profile.medicalInfo;
+  }
+  return profile;
+};
+
+const Sportsman = mongoose
+  .model("User")
+  .discriminator("Sportsman", sportsmanSchema);
 
 module.exports = Sportsman;
