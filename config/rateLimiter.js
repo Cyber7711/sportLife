@@ -1,62 +1,112 @@
+// utils/rateLimiter.js yoki middleware/rateLimiter.js
 const rateLimit = require("express-rate-limit");
-const Redis = require("ioredis");
 const { RedisStore } = require("rate-limit-redis");
+const Redis = require("ioredis");
 
-const redisClient = new Redis({
-  host: process.env.REDIS_HOST || "127.0.0.1",
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
-});
+// Redis klientni faqat kerak bo‘lganda yaratamiz + xatolarga chidamli qilamiz
+let redisClient;
 
-function createIPLimiter({ windowMs, max, message }) {
-  return rateLimit({
+try {
+  redisClient = new Redis({
+    host: process.env.REDIS_HOST || "127.0.0.1",
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
+    retryStrategy: (times) => {
+      if (times > 10) {
+        console.warn(
+          "Redis rate-limiter uchun ulanmadi, IP-based fallback ishlaydi"
+        );
+        return null; // retry to'xtasin
+      }
+      return Math.min(times * 500, 2000);
+    },
+    maxRetriesPerRequest: null, // rate-limit-redis uchun muhim!
+    enableOfflineQueue: false, // offline holatda queue to‘planmasin
+  });
+
+  redisClient.on("error", (err) => {
+    console.warn("Rate limiter Redis xatosi:", err.message);
+    // Bu yerda ilova o‘chmaydi!
+  });
+
+  redisClient.on("connect", () => {
+    console.log("Rate limiter Redisga muvaffaqiyatli ulandi");
+  });
+} catch (err) {
+  console.warn("Redis yaratishda xato:", err.message);
+  redisClient = null;
+}
+
+// Umumiy limiter yaratuvchi funksiya
+function createLimiter({ windowMs, max, message, keyPrefix = "rl" }) {
+  const baseConfig = {
     windowMs,
     max,
-    store: new RedisStore({
-      sendCommand: (...args) => redisClient.call(...args),
-    }),
-    keyGenerator: (req) => {
-      if (req.user?.id) {
-        return `user_${req.user.id}`;
-      }
-      return `ip_${req.ip}`;
-    },
-    standardHeaders: true,
+    standardHeaders: "draft-7",
     legacyHeaders: false,
-    message,
+    message: { error: message },
+    skip: (req) => {
+      // Agar Redis ishlamasa – limiting o‘chsin (yoki memory store ishlatish mumkin)
+      return !redisClient?.status || redisClient.status !== "ready";
+    },
+  };
+
+  // Agar Redis ishlayotgan bo‘lsa – RedisStore, aks holda memory fallback
+  if (redisClient && redisClient.status === "ready") {
+    return rateLimit({
+      ...baseConfig,
+      store: new RedisStore({
+        sendCommand: (...args) => redisClient.call(...args),
+        prefix: `${keyPrefix}:`,
+      }),
+      keyGenerator: (req) => {
+        if (req.user?.id) return `user:${req.user.id}`;
+        return `ip:${req.ip || req.socket.remoteAddress}`;
+      },
+    });
+  }
+
+  // Redis ishlamasa – oddiy memory store (ilovada crash bo‘lmaydi)
+  console.warn(`Redis ulanmadi → ${keyPrefix} limiter memory store ga o‘tdi`);
+  return rateLimit({
+    ...baseConfig,
+    keyGenerator: (req) => {
+      return req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`;
+    },
   });
 }
 
-function registerLimiter() {
-  return createIPLimiter({
+// Tayyor limiterlar
+const registerLimiter = () =>
+  createLimiter({
     max: 3,
-    windowMs: 60 * 60 * 1000,
-    message: {
-      error: "Ko'p urunishlar. 1 soatdan keyin qayta urinib ko‘ring.",
-    },
+    windowMs: 60 * 60 * 1000, // 1 soat
+    message:
+      "Ko‘p ro‘yxatdan o‘tish urinishlari. 1 soatdan keyin qayta urinib ko‘ring.",
+    keyPrefix: "register",
   });
-}
 
-function loginLimiter() {
-  return createIPLimiter({
+const loginLimiter = () =>
+  createLimiter({
     max: 10,
-    windowMs: 15 * 60 * 1000,
-    message: {
-      error: "Ko'p urunishlar. 15 daqiqadan keyin qayta urinib ko‘ring.",
-    },
+    windowMs: 15 * 60 * 1000, // 15 daqiqa
+    message:
+      "Ko‘p kirish urinishlari. 15 daqiqadan keyin qayta urinib ko‘ring.",
+    keyPrefix: "login",
   });
-}
 
-function resetLimiter(params) {
-  return createIPLimiter({
+const resetPasswordLimiter = () =>
+  createLimiter({
     max: 5,
-    windowMs: 30 * 60 * 1000,
-    message: {
-      error: "Ko'p urunishlar. 30 daqiqadan keyin qayta urinib ko‘ring.",
-    },
+    windowMs: 30 * 60 * 1000, // 30 daqiqa
+    message:
+      "Parolni tiklash uchun ko‘p urinishlar. 30 daqiqadan keyin qayta urinib ko‘ring.",
+    keyPrefix: "reset",
   });
-}
 
-const authLimiter = { registerLimiter, loginLimiter, resetLimiter };
-
-module.exports = { redisClient, createIPLimiter, authLimiter };
+module.exports = {
+  redisClient,
+  registerLimiter,
+  loginLimiter,
+  resetPasswordLimiter,
+};

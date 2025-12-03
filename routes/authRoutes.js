@@ -1,12 +1,16 @@
 const express = require("express");
 const authController = require("../controller/authController");
 const { protect, restrictTo } = require("../middleware/protect");
-const { authLimiter } = require("../config/rateLimiter");
+const {
+  registerLimiter,
+  loginLimiter,
+  resetPasswordLimiter,
+} = require("../config/rateLimiter");
 
 const router = express.Router();
 
-router.post("/register", authLimiter.registerLimiter, authController.register);
-router.post("/login", authLimiter.loginLimiter, authController.login);
+router.post("/register", registerLimiter(), authController.register);
+router.post("/login", loginLimiter(), authController.login);
 router.post("/refresh-token", authController.refreshToken);
 
 router.get("/me", protect, authController.getMe);

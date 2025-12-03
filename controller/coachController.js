@@ -1,75 +1,51 @@
 const CoachService = require("../service/coachService");
+const catchAsync = require("../middleware/asyncWrapper");
+const sendResponse = require("../middleware/sendResponse");
 
-const createCoach = async (req, res, next) => {
-  try {
-    const result = await CoachService.createCoach(req.body);
-    res.status(201).json({
-      success: true,
-      message: "Murabbiy muvaffaqiyatli yaratildi",
-      data: result,
-    });
-  } catch (err) {
-    return next(err);
-  }
-};
+const createCoach = catchAsync(async (req, res) => {
+  const result = await CoachService.createCoach(req.body);
+  sendResponse(res, {
+    status: 201,
+    message: "Murabbiy muvaffaqiyatli yaratildi",
+    data: result,
+  });
+});
 
-const getAllCoaches = async (req, res, next) => {
-  try {
-    const result = await CoachService.getAllCoaches(req.query);
-    if (!result?.data?.length) {
-      res.status(200).json({
-        success: true,
-        message: "Hozircha murabbiylar yuq",
-        data: [],
-      });
-    }
-    return res.status(200).json({
-      success: true,
-      message: "Murabbiylar muvaffqiyatli topildi",
-      data: result,
-    });
-  } catch (err) {
-    return next(err);
-  }
-};
+const getAllCoaches = catchAsync(async (req, res) => {
+  const result = await CoachService.getAllCoaches(req.query);
 
-const getCoachById = async (req, res, next) => {
-  try {
-    const result = await CoachService.getCoachById(req.params.id);
+  sendResponse(res, {
+    status: 200,
+    message: result?.data?.length
+      ? "Murabbiylar muvaffqiyatli topildi"
+      : "Hozircha murabbiylar yuq",
+    data: result,
+  });
+});
 
-    res.status(200).json({
-      success: true,
-      message: "Murabbiy muvaffaqiyatli olindi",
-      data: result,
-    });
-  } catch (err) {
-    return next(err);
-  }
-};
+const getCoachById = catchAsync(async (req, res) => {
+  const result = await CoachService.getCoachById(req.params.id);
+  sendResponse(res, {
+    status: 200,
+    message: "Murabbiy muvaffaqiyatli olindi",
+    data: result,
+  });
+});
 
-const updateCoach = async (req, res, next) => {
-  try {
-    const result = await CoachService.updateCoach(req.params.id, req.body);
-    res
-      .status(200)
-      .json({
-        sucess: true,
-        message: "Murabbiy muvaffaqiyatli yangilandi",
-        data: result,
-      });
-  } catch (err) {
-    return next(err);
-  }
-};
+const updateCoach = catchAsync(async (req, res) => {
+  const result = await CoachService.updateCoach(req.params.id, req.body);
+  sendResponse(res, {
+    status: 200,
+    message: "Murabbiy muvaffaqiyatli yangilandi",
+    data: result,
+  });
+});
 
-const deleteCoach = async (req, res, next) => {
-  try {
-    const result = await CoachService.deleteCoach(req.params.id);
-    res.status(204).set("X-Message", "Murabbiy muvaffaqiyatli uchirildi").end();
-  } catch (err) {
-    return next(err);
-  }
-};
+const deleteCoach = catchAsync(async (req, res) => {
+  await CoachService.deleteCoach(req.params.id);
+
+  res.status(204).set("X-Message", "Murabbiy muvaffaqiyatli uchirildi").end();
+});
 
 const coachController = {
   createCoach,
