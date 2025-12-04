@@ -1,5 +1,3 @@
-// models/sportsmanModel.js   ← alohida fayl, alohida collection!
-
 const mongoose = require("mongoose");
 const AppError = require("../utils/appError");
 
@@ -25,7 +23,7 @@ const achievementsSchema = new mongoose.Schema(
     verified: { type: Boolean, default: false },
   },
   { timestamps: true, _id: true }
-); // _id bo‘lsin — keyinchalik o‘chirish uchun
+);
 
 const sportsmanSchema = new mongoose.Schema(
   {
