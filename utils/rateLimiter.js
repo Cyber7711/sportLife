@@ -1,4 +1,3 @@
-// utils/rateLimiter.js yoki middleware/rateLimiter.js
 const rateLimit = require("express-rate-limit");
 const { RedisStore } = require("rate-limit-redis");
 const Redis = require("ioredis");
@@ -75,6 +74,10 @@ function createLimiter({ windowMs, max, message, keyPrefix = "rl" }) {
     },
   });
 }
+// https://www.instagram.com/reel/DPRaFqQjX6X/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
+// https://www.instagram.com/reel/DO0HS-nDxQl/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
+// https://www.instagram.com/reel/DLycYkbo4wo/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
+// https://www.instagram.com/reel/DN1KD2I0E5A/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
 
 // Tayyor limiterlar
 const registerLimiter = () =>

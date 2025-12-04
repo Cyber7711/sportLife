@@ -1,10 +1,25 @@
-const { default: mongoose } = require("mongoose");
+const mongoose = require("mongoose");
 const AppError = require("../utils/appError");
 const Sportsman = require("../model/sportsman");
+const repo = require("../repositories/sportsmanRepository");
+const validators = require("../utils/validators");
 
 async function createSportsman(data) {
-  const { sportType, coach, height, weight, achievements } = data;
+  const {
+    sportType,
+    coach,
+    height,
+    weight,
+    achievements,
+    category,
+    medicalInfo,
+  } = data;
   const missing = [];
+
+  if (!validators.isNonEmptyString(sportType)) missing.push("sportType");
+  if (!validators.isPositiveNumber(height)) missing.push("height");
+  if (!validators.isPositiveNumber(weight)) missing.push("weight");
+  if (!validators.isNonEmptyString(category)) missing.push("category");
 
   if (missing.length > 0) {
     throw new AppError(
@@ -13,14 +28,17 @@ async function createSportsman(data) {
     );
   }
 
-  const sportsman = new Sportsman.find({
+  const payload = {
     sportType,
     coach,
     height,
     weight,
     achievements,
-  });
-  return await sportsman.save();
+    isActive: true,
+  };
+
+  const sportsman = await repo.create(payload);
+  return sportsman.toObject();
 }
 
 async function getAllSportsmen() {

@@ -15,75 +15,56 @@ const connectDB = require("./config/db");
 const globalErrorHandler = require("./middleware/globalErrorHandler.js.js");
 const AppError = require("./utils/appError");
 const authRoutes = require("./routes/authRoutes.js");
-
-// Rate limiter (endi to'g'ri import qilamiz)
 const {
   registerLimiter,
   loginLimiter,
   resetPasswordLimiter,
-} = require("./config/rateLimiter.js"); // avvalgi javobimdagi fayl
+} = require("./utils/rateLimiter.js");
 
-// ================================
-// 1) DB ulash (async xatoliklarni ushlash uchun)
-// ================================
 connectDB();
 
-// ================================
-// 2) Trust Proxy – Render, Railway, VPS orqali ishlaganda muhim!
-// ================================
 app.set("trust proxy", 1);
 
-// ================================
-// 3) Global Speed Limiter (Brute-force qiyinlashtirish uchun)
-// ================================
 const globalSpeedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 daqiqa
-  delayAfter: 100, // 100 ta so'rovdan keyin
-  delayMs: () => 1000, // har bir keyingi so'rov +1 sekund kechikadi
-  skipFailedRequests: true, // muvaffaqiyatsiz so'rovlar hisoblanmaydi
+  windowMs: 15 * 60 * 1000,
+  delayAfter: 100,
+  delayMs: () => 1000,
+  skipFailedRequests: true,
 });
 
 app.use(globalSpeedLimiter);
 
-// ================================
-// 4) CORS – xavfsiz va to'g'ri
-// ================================
 const allowedOrigins = [
   "https://sportlife.uz",
   "https://www.sportlife.uz",
   "http://localhost:3000",
   "http://localhost:4000",
-  "http://localhost:5173", // agar React/Vite bo'lsa
+  "http://localhost:5173",
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Postman, mobile app yoki server-to-server uchun origin yo'q bo'lishi mumkin
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, false); // 403 emas, faqat block
+      callback(null, false);
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200, // eski brauzerlar uchun
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
 
-// ================================
-// 5) Security Middlewares
-// ================================
-app.use(express.json({ limit: "10kb" })); // kichik payload = kichik xavf
+app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// Helmet – production va dev uchun farqli
 if (process.env.NODE_ENV === "production") {
   app.use(helmet());
 } else {
   app.use(
     helmet({
-      contentSecurityPolicy: false, // React/Vite bilan ishlaganda kerak bo'lmasligi mumkin
+      contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
     })
   );

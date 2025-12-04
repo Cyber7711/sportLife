@@ -1,29 +1,27 @@
-const Sportsman = require("../model/sportsman");
+const Sportsman = require("../models/sportsmanModel");
 
-const baseQuery = () => Sportsman.find();
+const repo = {
+  create: (data) => Sportsman.create(data),
 
-const create = (data) => Sportsman.create(data);
+  findAll: (filter = {}) =>
+    Sportsman.find({ ...filter, isActive: true }).lean(),
 
-const findAll = (filter = {}) => Sportsman.find(filter);
+  findById: (id) => Sportsman.findById(id).lean(),
 
-const findOne = (filter = {}) => Sportsman.findOne(filter);
+  findOne: (filter) => Sportsman.findOne({ ...filter, isActive: true }).lean(),
 
-const findById = (id) => Sportsman.findById(id);
+  update: (id, data) =>
+    Sportsman.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+    }).lean(),
 
-const update = (id, updateData, options = { new: true }) =>
-  Sportsman.findOneAndUpdate({ _id: id }, updateData, options);
-
-const deleteById = (id) =>
-  Sportsman.findOneAndUpdate({ _id: id }, { isActive: false }, { new: true });
-
-const sportsmanRepository = {
-  baseQuery,
-  create,
-  findAll,
-  findById,
-  findOne,
-  update,
-  deleteById,
+  softDelete: (id) =>
+    Sportsman.findByIdAndUpdate(
+      id,
+      { isActive: false, deletedAt: new Date() },
+      { new: true }
+    ).lean(),
 };
 
-module.exports = sportsmanRepository;
+module.exports = repo;

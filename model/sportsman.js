@@ -1,5 +1,6 @@
+// models/sportsmanModel.js   ← alohida fayl, alohida collection!
+
 const mongoose = require("mongoose");
-const Coach = require("./coach");
 const AppError = require("../utils/appError");
 
 const achievementsSchema = new mongoose.Schema(
@@ -8,176 +9,151 @@ const achievementsSchema = new mongoose.Schema(
       type: String,
       required: [true, "Yutuq nomi kiritilishi shart"],
       trim: true,
-      minlength: [3, "Yutuq nomi 3 sozdan kam bulmasligi kerak"],
-      maxlength: [100, "Yutuq nomi 100 ta sozdan kop bulmasligi kerak"],
+      minlength: 3,
+      maxlength: 100,
     },
     year: {
       type: Number,
-      min: [1900, "Yutuq yili 1900-yildan past bulmasligi kerak"],
-      max: [
-        new Date().getFullYear() + 1,
-        "Kelajak yutuqlari hali kiritilmaydi",
-      ],
+      min: 1940,
+      max: new Date().getFullYear() + 1,
     },
     description: {
       type: String,
       trim: true,
-      maxlength: [500, "Tavsif 500 belgidan oshmasligi kerak"],
+      maxlength: 300,
     },
-    verified: {
-      type: Boolean,
-      default: false,
-    },
+    verified: { type: Boolean, default: false },
   },
-  { _id: false, timestamps: true }
-);
+  { timestamps: true, _id: true }
+); // _id bo‘lsin — keyinchalik o‘chirish uchun
 
 const sportsmanSchema = new mongoose.Schema(
   {
+    name: { type: String, required: true, trim: true, minlength: 2 },
+    surname: { type: String, required: true, trim: true, minlength: 2 },
+    birthDate: {
+      type: Date,
+      required: [true, "Tug'ilgan sana kiritilishi shart"],
+    },
+    phone: {
+      type: String,
+      match: /^\+998\d{9}$/,
+      sparse: true,
+      unique: true,
+    },
+
     sportType: {
       type: String,
-      required: [true, "Sport turi kiritilishi shart"],
-      trim: true,
-      enum: {
-        values: [
-          "Futbol",
-          "Basketbol",
-          "Voleybol",
-          "Boks",
-          "Kurash",
-          "Taekvondo",
-          "Sambo",
-          "Og'ir atletika",
-          "Yengil atletika",
-          "Suzish",
-          "Tenis",
-          "Stol tennisi",
-          "Dzyudo",
-          "Karate",
-        ],
-        message: (props) => `Bunday Sport turi mavjud emas: ${props.value} `,
-      },
+      required: true,
+      enum: [
+        "Futbol",
+        "Basketbol",
+        "Voleybol",
+        "Boks",
+        "Kurash",
+        "Taekvondo",
+        "Sambo",
+        "Og'ir atletika",
+        "Yengil atletika",
+        "Suzish",
+        "Tenis",
+        "Stol tennisi",
+        "Dzyudo",
+        "Karate",
+      ],
     },
+
     coach: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Coach",
-      required: [true, "Murabbiy ID si kiritilishi shart"],
-      validate: {
-        validator: async function (coachId) {
-          const coach = await mongoose.model("Coach").findById(coachId);
-          return coach != null && coach && coach.isActive === true;
-        },
-        message: "Tanlangan murabbiy faol emas yoki mavjud emas",
-      },
+      required: true,
     },
-    weight: {
-      type: Number,
-      min: [30, "Vazn 30 kg dan kam bulmasligi kerak"],
-      max: [
-        200,
-        "Vazn 200 kg dan kop bulmasligi kerak (agar ogir atliktika bulsa ham)",
-      ],
-      required: [true, "Vazn kiritilishi shart"],
-      validate: {
-        validator: (v) => Number.isFinite(v) && v > 0,
-        message: "Vazn togri raqam bulishi kerak",
-      },
-    },
-    height: {
-      type: Number,
-      min: [100, "Boyninggiz 100 sm dan kam bulmasligi kerak"],
-      max: [230, "Boyninggiz 230 sm dan baland bulishi odatiy emas"],
-      required: [true, "Boy uzunligi kiritilishi shart"],
-    },
+
+    height: { type: Number, required: true, min: 100, max: 230 },
+    weight: { type: Number, required: true, min: 30, max: 200 },
+
     achievements: {
       type: [achievementsSchema],
-      validate: {
-        validator: (v) => v.length <= 50,
-        message: "Yutuqlar soni 50 tadan oshmasligi kerak",
-      },
+      validate: [
+        (v) => v.length <= 50,
+        "Yutuqlar soni 50 tadan oshmasligi kerak",
+      ],
+      default: [],
     },
+
     category: {
       type: String,
       enum: ["Yoshlar", "Kattalar", "Veteran", "Professional", "Amateur"],
       default: "Yoshlar",
     },
+
     medicalInfo: {
       bloodType: {
         type: String,
         enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
       },
       allergies: { type: [String], default: [] },
-      chronicDiseases: [String],
+      chronicDiseases: { type: [String], default: [] },
       lastMedicalCheck: Date,
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-      select: false,
-    },
-    birthDate: {
-      type: Date,
-    },
-  },
 
+    isActive: { type: Boolean, default: true, select: false },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
-sportsmanSchema.index({ coach: 1 }), sportsmanSchema.index({ sportType: 1 });
-sportsmanSchema.index({ "achievements.year": -1 });
+// === INDEXES ===
+sportsmanSchema.index({ coach: 1 });
+sportsmanSchema.index({ sportType: 1 });
 sportsmanSchema.index({ createdAt: -1 });
+sportsmanSchema.index({ "achievements.year": -1 });
 
+// === VIRTUAL ===
 sportsmanSchema.virtual("age").get(function () {
   if (!this.birthDate) return null;
   const today = new Date();
   let age = today.getFullYear() - this.birthDate.getFullYear();
   const m = today.getMonth() - this.birthDate.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < this.birthDate.getDate())) {
-    age--;
-  }
+  if (m < 0 || (m === 0 && today.getDate() < this.birthDate.getDate())) age--;
   return age;
 });
 
+// === METHOD ===
+sportsmanSchema.methods.getPublicProfile = function () {
+  const obj = this.toObject();
+  delete obj.isActive;
+  delete obj.medicalInfo; // oddiy odam ko‘rmasin
+  delete obj.__v;
+  return obj;
+};
+
+// === PRE SAVE → Coach bilan bog‘lash (lekin transaction bilan emas, chunki MongoDB 4.0+ kerak emas) ===
 sportsmanSchema.pre("save", async function (next) {
-  if (this.isNew || this.isModified("coach")) {
-    try {
-      if (!this.isNew) {
-        const old = await this.constructor.findById(this._id).select("coach");
-        if (old && old.coach && !old.coach.equals(this.coach)) {
-          await Coach.updateOne(
-            { _id: old.coach },
-            { $pull: { sportsman: this._id } }
-          );
-        }
-      }
+  if (this.isModified("coach") || this.isNew) {
+    const Coach = mongoose.model("Coach");
+    const coach = await Coach.findOne({ _id: this.coach, isActive: true });
 
-      const result = await Coach.updateOne(
-        { _id: this.coach, isActive: true },
-        { $addToSet: { sportsman: this._id } }
-      );
-
-      if (result.matchedCount === 0) {
-        return next(new AppError("Murabbiy topilmadi yoki faol emas", 400));
-      }
-    } catch (err) {
-      return next(err);
+    if (!coach) {
+      return next(new AppError("Murabbiy topilmadi yoki faol emas", 400));
     }
   }
   next();
 });
 
-sportsmanSchema.methods.getPublicProfile = function (isAdmin = false) {
-  const profile = this.toObject();
-  delete profile.isActive;
-  delete profile.__v;
-  if (!this.isAdmin) {
-    delete profile.medicalInfo;
+// Agar coach o‘zgarsa → eski coachdan o‘chirish
+sportsmanSchema.pre("findOneAndUpdate", async function (next) {
+  const update = this.getUpdate();
+  if (update.coach) {
+    const sportsman = await this.model.findOne(this.getQuery());
+    if (sportsman && !sportsman.coach.equals(update.coach)) {
+      await mongoose.model("Coach").updateOne(
+        { _id: sportsman.coach },
+        { $pull: { sportsmen: sportsman._id } } // esda qolsin: Coach modelida sportsmen emas, sportsmen!
+      );
+    }
   }
-  return profile;
-};
+  next();
+});
 
-const Sportsman = mongoose
-  .model("User")
-  .discriminator("Sportsman", sportsmanSchema);
-
-module.exports = Sportsman;
+module.exports = mongoose.model("Sportsman", sportsmanSchema);

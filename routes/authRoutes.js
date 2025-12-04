@@ -5,7 +5,7 @@ const {
   registerLimiter,
   loginLimiter,
   resetPasswordLimiter,
-} = require("../config/rateLimiter");
+} = require("../utils/rateLimiter");
 
 const router = express.Router();
 
