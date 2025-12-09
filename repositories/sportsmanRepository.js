@@ -1,4 +1,4 @@
-const Sportsman = require("../models/sportsmanModel");
+const Sportsman = require("../model/sportsman");
 
 const repo = {
   create: (data) => Sportsman.create(data),

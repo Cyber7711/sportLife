@@ -9,13 +9,13 @@ const {
 
 const router = express.Router();
 
-router.post("/register", registerLimiter(), authController.register);
-router.post("/login", loginLimiter(), authController.login);
-router.post("/refresh-token", authController.refreshToken);
+router.post("/", registerLimiter(), authController.register);
+router.post("/", loginLimiter(), authController.login);
+router.post("/", authController.refreshToken);
 
-router.get("/me", protect, authController.getMe);
+router.get("/", protect, authController.getMe);
 
-router.get("/admin-only", protect, restrictTo("admin"), (req, res) => {
+router.get("/", protect, restrictTo("admin"), (req, res) => {
   res
     .status(200)
     .json({ status: "success", message: "Admin rolengiz tasdiqlandi" });

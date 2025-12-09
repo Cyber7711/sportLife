@@ -1,3 +1,4 @@
+// server.js — FINAL & PERFECT VERSION (2025 standartlarida)
 const express = require("express");
 const app = express();
 const fs = require("fs");
@@ -7,33 +8,41 @@ const cors = require("cors");
 const helmet = require("helmet");
 const hpp = require("hpp");
 const slowDown = require("express-slow-down");
-
 require("dotenv").config();
 require("colors");
 
 const connectDB = require("./config/db");
-const globalErrorHandler = require("./middleware/globalErrorHandler.js.js");
+const globalErrorHandler = require("./middleware/globalErrorHandler.js"); // TO‘G‘RILANDI!
 const AppError = require("./utils/appError");
-const authRoutes = require("./routes/authRoutes.js");
+const authRoutes = require("./routes/authRoutes");
 const {
   registerLimiter,
   loginLimiter,
   resetPasswordLimiter,
-} = require("./utils/rateLimiter.js");
+} = require("./utils/rateLimiter");
 
+// ================================
+// 1) DB ulanish
+// ================================
 connectDB();
 
+// ================================
+// 2) Global Middlewares
+// ================================
 app.set("trust proxy", 1);
 
+// Global rate limiting (spam hujumlardan himoya)
 const globalSpeedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000,
-  delayAfter: 100,
-  delayMs: () => 1000,
+  windowMs: 15 * 60 * 1000, // 15 daqiqa
+  delayAfter: 100, // 100 ta so‘rovdan keyin
+  delayMs: () => 1000, // har so‘rovga +1 sekund
   skipFailedRequests: true,
 });
-
 app.use(globalSpeedLimiter);
 
+// ================================
+// 3) CORS — faqat ishonchli domenlar
+// ================================
 const allowedOrigins = [
   "https://sportlife.uz",
   "https://www.sportlife.uz",
@@ -42,124 +51,118 @@ const allowedOrigins = [
   "http://localhost:5173",
 ];
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, false);
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false); // yoki new Error("CORS rad etildi")
+      }
+    },
+    credentials: true,
+    optionsSuccessStatus: 200,
+  })
+);
 
-app.use(cors(corsOptions));
-
+// ================================
+// 4) Security & Body Parsing
+// ================================
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-if (process.env.NODE_ENV === "production") {
-  app.use(helmet());
-} else {
-  app.use(
-    helmet({
-      contentSecurityPolicy: false,
-      crossOriginEmbedderPolicy: false,
-    })
-  );
-}
+// Helmet
+app.use(
+  helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === "production",
+    crossOriginEmbedderPolicy: process.env.NODE_ENV !== "production",
+  })
+);
 
-app.use(hpp()); // Parameter pollution oldini olish
+app.use(hpp()); // Parameter pollution himoyasi
 
-// Morgan – faqat devda
+// Morgan — faqat devda
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
 // ================================
-// 6) Auth Routes + Individual Rate Limiters (eng muhimi!)
+// 5) Auth Routes + Rate Limiting
 // ================================
-// Har bir endpoint uchun alohida limiter – bu eng to‘g‘ri usul
 app.use("/auth/register", registerLimiter(), authRoutes);
 app.use("/auth/login", loginLimiter(), authRoutes);
 app.use("/auth/forgot-password", resetPasswordLimiter(), authRoutes);
 app.use("/auth/reset-password", resetPasswordLimiter(), authRoutes);
-
-// Qolgan auth routelarni limitsiz qoldiramiz (masalan verify-email, me, logout)
-// Agar kerak bo‘lsa – ularga ham qo‘shish mumkin
+app.use("/auth", authRoutes); // qolganlari (me, logout, change-password)
 
 // ================================
-// 7) Dynamic API Routes (authdan tashqari)
+// 6) Dynamic API Routes
 // ================================
 const routesPath = path.join(__dirname, "routes");
 
 fs.readdirSync(routesPath)
-  .filter((file) => {
-    return (
+  .filter(
+    (file) =>
       file.endsWith("Routes.js") &&
       !file.startsWith("auth") &&
       file !== "index.js"
-    );
-  })
+  )
   .forEach((file) => {
     const routeName = file
       .replace("Routes.js", "")
       .replace(/([A-Z])/g, "-$1")
       .toLowerCase();
+
     const routePath = `/api/v1/${routeName}`;
     const route = require(path.join(routesPath, file));
 
-    // Masalan: coachRoutes.js → /api/v1/coach
-    // sportRoutes.js → /api/v1/sport
     app.use(routePath, route);
-    console.log(`Route yuklandi: ${routePath}`);
+    console.log(`Route yuklandi: ${routePath}`.green);
   });
 
 // ================================
-// 8) Health Check & Root
+// 7) Health Check
 // ================================
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
     message: "SportLife API ishlayapti!",
-    uptime: process.uptime(),
+    uptime: `${Math.floor(process.uptime())} sekund`,
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
   });
 });
 
-// 404 – barcha routelardan keyin!
+// ================================
+// 8) 404 Handler
+// ================================
 app.use((req, res, next) => {
-  next(new AppError(`URL topilmadi: ${req.originalUrl}`.red, 404));
+  next(new AppError(`URL topilmadi: ${req.originalUrl}`, 404));
 });
 
 // ================================
-// 9) Global Error Handler
+// 9) Global Error Handler (oxirgi bo‘lishi shart!)
 // ================================
 app.use(globalErrorHandler);
 
 // ================================
-// 10) Serverni ishga tushirish (graceful)
+// 10) Server Start
 // ================================
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 const server = app.listen(PORT, () => {
   console.log(`Server ${PORT}-portda ishga tushdi`.green.bold);
   console.log(`Mu hit: http://localhost:${PORT}`.cyan);
 });
 
-// Graceful shutdown (PM2, Docker, Render uchun muhim!)
-process.on("SIGTERM", () => {
-  console.log("SIGTERM qabul qilindi. Server o‘chirilmoqda...");
+// Graceful shutdown
+const shutdown = (signal) => {
+  console.log(`${signal} qabul qilindi. Server o‘chirilmoqda...`.yellow);
   server.close(() => {
-    console.log("Server to‘xtadi.");
+    console.log("Server toza yopildi.".green);
     process.exit(0);
   });
-});
+};
 
-process.on("SIGINT", () => {
-  console.log("SIGINT (Ctrl+C). Server o‘chirilmoqda...");
-  server.close(() => {
-    process.exit(0);
-  });
-});
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

@@ -3,7 +3,7 @@ const sendResponse = require("../middleware/sendResponse");
 const SportsmanService = require("../service/sportsmanService");
 
 const create = catchAsync(async (req, res) => {
-  const result = await SportsmanService.create(req.body, req.user._id);
+  const result = await SportsmanService.create(req.body, req.user?._id);
   sendResponse(res, {
     status: 201,
     message: "Sportsman muvaffaqiyatli yaratildi",
@@ -12,7 +12,7 @@ const create = catchAsync(async (req, res) => {
 });
 
 const getAll = catchAsync(async (req, res) => {
-  const result = await SportsmanService.getAll();
+  const result = await SportsmanService.getAll(req.query);
   sendResponse(res, {
     status: 200,
     message: "Sportchilar muvaffaqiyatli olindi",
@@ -28,6 +28,31 @@ const getById = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+const update = catchAsync(async (req, res) => {
+  const result = await SportsmanService.update(req.params.id, req.body);
+  sendResponse(res, {
+    status: 200,
+    message: "Sportchi muvaffaqiyatli yangilandi",
+    data: result,
+  });
+});
+
+const deleted = catchAsync(async (req, res) => {
+  const result = await SportsmanService.delete(req.params.id);
+  res.status(204).send();
+});
+
+const SportsmanController = {
+  create,
+  getAll,
+  getById,
+  update,
+  deleted,
+};
+
+module.exports = SportsmanController;
+
 // https://www.instagram.com/reel/DPybfIdj_Z3/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
 // https://www.instagram.com/reel/DQUDyyADcJV/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
 // https://www.instagram.com/reel/DL_caZMI83q/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
