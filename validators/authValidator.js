@@ -17,8 +17,13 @@ const registerSchema = z.object({
     .string()
     .regex(uzPhoneRegex, "Telefon raqami +998901234567 shaklida bulishi kerak")
     .optional(),
-  email: z.string().email("Email notugri formatda").optional(),
+  email: z.string().email("Email notugri formatda").trim().optional(),
   password: z
     .string()
-    .min(6, "Parol kamida 6 ta belgidan iborat bulishi kerak"),
+    .min(8, "Parol kamida 8 belgi bo‘lishi shart")
+    .regex(/[a-z]/, "Kichik harf bo‘lishi shart")
+    .regex(/[A-Z]/, "Katta harf bo‘lishi shart")
+    .regex(/[0-9]/, "Raqam bo‘lishi shart"),
 });
+
+module.exports = registerSchema;

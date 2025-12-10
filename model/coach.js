@@ -135,7 +135,7 @@ const coachSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // === INDEXLAR (Tezlik uchun juda muhim!) ===
@@ -184,7 +184,7 @@ coachSchema.methods.getPublicProfile = function () {
   if (coach.contact && coach.contact.phone && !this.isAdminRequest) {
     coach.contact.phone = coach.contact.phone.replace(
       /(\d{3})\d{6}(\d{2})/,
-      "$1******$2"
+      "$1******$2",
     );
   }
 

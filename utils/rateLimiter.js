@@ -2,7 +2,6 @@ const rateLimit = require("express-rate-limit");
 const { RedisStore } = require("rate-limit-redis");
 const Redis = require("ioredis");
 
-// Redis klientni faqat kerak bo‘lganda yaratamiz + xatolarga chidamli qilamiz
 let redisClient;
 
 try {

@@ -170,7 +170,7 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual fullName
@@ -194,7 +194,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 userSchema.pre("save", function (next) {
   if (!this.phone && !this.email) {
     return next(
-      new Error("Telefon yoki emaildan kamida bittasi bo‘lishi kerak")
+      new Error("Telefon yoki emaildan kamida bittasi bo‘lishi kerak"),
     );
   }
   next();

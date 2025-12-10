@@ -20,7 +20,7 @@ const repo = {
     Sportsman.findByIdAndUpdate(
       id,
       { isActive: false, deletedAt: new Date() },
-      { new: true }
+      { new: true },
     ).lean(),
 };
 

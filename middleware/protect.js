@@ -17,7 +17,7 @@ exports.protect = async (req, res, next) => {
       const changedAt = parseInt(user.passwordChangedAt.getTime() / 1000);
       if (payload.iat < changedAt) {
         return next(
-          new AppError("Token yaroqsiz. Iltimos qayta login qiling", 401)
+          new AppError("Token yaroqsiz. Iltimos qayta login qiling", 401),
         );
       }
     }

@@ -22,7 +22,7 @@ const achievementsSchema = new mongoose.Schema(
     },
     verified: { type: Boolean, default: false },
   },
-  { timestamps: true, _id: true }
+  { timestamps: true, _id: true },
 );
 
 const sportsmanSchema = new mongoose.Schema(
@@ -104,7 +104,11 @@ const sportsmanSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true, select: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
-  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
 
 // === INDEXES ===
@@ -153,7 +157,7 @@ sportsmanSchema.pre("findOneAndUpdate", async function (next) {
     if (sportsman && !sportsman.coach.equals(update.coach)) {
       await mongoose.model("Coach").updateOne(
         { _id: sportsman.coach },
-        { $pull: { sportsmen: sportsman._id } } // esda qolsin: Coach modelida sportsmen emas, sportsmen!
+        { $pull: { sportsmen: sportsman._id } }, // esda qolsin: Coach modelida sportsmen emas, sportsmen!
       );
     }
   }

@@ -1,5 +1,15 @@
 const mongoose = require("mongoose");
 
+if (!process.env.MONGO_URL) {
+  console.error("Mongo URL topilmadi".red);
+  process.exit(1);
+}
+
+if (!process.env.MONGO_URL.startsWith("mongodb")) {
+  console.error("Notugri MONGO URL qiymati");
+  process.exit(1);
+}
+
 const connectDB = (() => {
   let retryCount = 0;
   const maxRetries = 5;
@@ -28,7 +38,7 @@ const connectDB = (() => {
       });
 
       console.log(
-        `✅ MongoDB muvaffaqiyatli ulandi: ${conn.connection.host}`.green
+        `✅ MongoDB muvaffaqiyatli ulandi: ${conn.connection.host}`.green,
       );
       retryCount = 0;
       isConnecting = false;
@@ -58,17 +68,17 @@ const connectDB = (() => {
 
       if (retryCount >= maxRetries) {
         console.error(
-          `❌ Maksimal qayta urinishlar soniga (${maxRetries}) yetildi`.red
+          `❌ Maksimal qayta urinishlar soniga (${maxRetries}) yetildi`.red,
         );
         process.exit(1);
       }
 
       console.error(
         `❌ MongoDB ulanishida xatolik (${retryCount}/${maxRetries}):`.red,
-        err.message
+        err.message,
       );
       console.log(
-        `🔄 ${retryDelay / 1000} soniyadan keyin qayta ulanilmoqda...`.yellow
+        `🔄 ${retryDelay / 1000} soniyadan keyin qayta ulanilmoqda...`.yellow,
       );
 
       setTimeout(connectDB, retryDelay);

@@ -43,7 +43,7 @@ const register = async (req, res, next) => {
     res.status(201).json({
       status: "success",
       accessToken,
-      data: { id: user._id, email: user.email, role: user.role },
+      data: { id: user._id, role: user.role },
     });
   } catch (err) {
     next(err);
@@ -59,7 +59,7 @@ const login = async (req, res, next) => {
     const user = await User.findOne({ email }).select("+password");
 
     if (!user || !(await user.comparePassword(password))) {
-      throw new AppError("Email yoki password notugri", 401);
+      throw new AppError("Noto'g'ri elektron pochta yoki parol", 401);
     }
 
     const accessToken = createAccessToken(user._id);
@@ -68,7 +68,7 @@ const login = async (req, res, next) => {
     res.status(200).json({
       status: "success",
       accessToken,
-      data: { id: user._id, email: user.email, role: user.role },
+      data: { id: user._id, role: user.role },
     });
   } catch (err) {
     next(err);

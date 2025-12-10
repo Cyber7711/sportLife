@@ -12,7 +12,7 @@ const catchAsync = (fn) => {
       console.log(
         `[PERF] ${req.method} ${
           req.originalUrl
-        } | ${time}ms | ${new Date().toISOString()}`
+        } | ${time}ms | ${new Date().toISOString()}`,
       );
     }
   };

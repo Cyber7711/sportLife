@@ -1,6 +1,12 @@
-const { z, string } = require("zod");
+const { z, string, transform } = require("zod");
+const validator = require("validator");
 
 const uzPhoneRegrex = /^\+998(33|55|77|88|90|91|93|94|95|97|98|99)\d{7}$/;
+
+const sanitizeString = (val) => {
+  if (typeof val !== "string") return val;
+  return validator.escape(val);
+};
 
 const achievementsSchema = z.object({
   title: z
@@ -27,12 +33,14 @@ const createSportsmanSchema = z.object({
     .string()
     .min(2, "Ism kamida 2 ta harfdan iborat bulishi kerak")
     .max(40, "Ism juda uzun")
-    .trim(),
+    .trim()
+    .transform(sanitizeString),
   surname: z
     .string()
     .min(2, "Familiya kiritilishi shart")
     .max(40, "Familiya juda uzun")
-    .trim(),
+    .trim()
+    .transform(sanitizeString),
   birthDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Tug‘ilgan sana YYYY-MM-DD formatida bo‘lsin")
