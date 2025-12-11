@@ -6,7 +6,6 @@ const User = require("./user");
 // Coach uchun qo‘shimcha maydonlar
 const coachSchema = new mongoose.Schema(
   {
-    // 1. Tajriba (yil)
     experience: {
       type: Number,
       required: [true, "Murabbiy tajribasi (yillarda) kiritilishi shart"],
@@ -135,7 +134,7 @@ const coachSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  },
+  }
 );
 
 // === INDEXLAR (Tezlik uchun juda muhim!) ===
@@ -184,7 +183,7 @@ coachSchema.methods.getPublicProfile = function () {
   if (coach.contact && coach.contact.phone && !this.isAdminRequest) {
     coach.contact.phone = coach.contact.phone.replace(
       /(\d{3})\d{6}(\d{2})/,
-      "$1******$2",
+      "$1******$2"
     );
   }
 
@@ -197,6 +196,6 @@ coachSchema.pre(/^find/, function (next) {
   next();
 });
 
-const Coach = User.discriminator("Coach", coachSchema);
+const Coach = mongoose.model("Coach", coachSchema);
 
 module.exports = Coach;

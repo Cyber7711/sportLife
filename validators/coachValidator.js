@@ -1,0 +1,64 @@
+const { z } = require("zod");
+const sanitizeString = require("../utils/validator");
+
+const SPORT_TYPES = [
+  "Futbol",
+  "Basketbol",
+  "Voleybol",
+  "Boks",
+  "Kurash",
+  "Dzyudo",
+  "Taekvondo",
+  "Og'ir atletika",
+  "Yengil atletika",
+  "Suzish",
+  "Tenis",
+  "Stol tennisi",
+  "Karate",
+  "Sambo",
+];
+
+const achievementsSchema = z.object({
+  title: z
+    .string()
+    .min(3, "Yutuq nomi kamida 3 ta belgidan iborat bulishi zarur")
+    .max(100, "Yutuq nomi 100 ta belgidan oshmasligi kerak")
+    .trim()
+    .transform(sanitizeString),
+  year: z
+    .number()
+    .int()
+    .min(1940, "Yil 1940 dan past bulmasligi kerak")
+    .max(
+      new Date().getFullYear() + 1,
+      "Kelajakdagi yutuqlarni kiritib bulmaydi"
+    ),
+  description: z
+    .string()
+    .max(300, "Tavsif 300 belgidan oshmasligi kerak")
+    .trim()
+    .transform(sanitizeString)
+    .optional(),
+  verified: z.boolean().optional().default(false),
+});
+
+const licenseSchema = z.object({
+  number: z.number().max(50).trim().toUpperCase().optional(),
+  issuedBy: z.string().max(50).trim().transform(sanitizeString).optional(),
+  issueDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}/, "Sanani YYYY-MM-DD formatida kiriting")
+    .pipe(z.coerce.date())
+    .refine(
+      (date) => data <= new Date(),
+      "Litsenziya berilgan sana kelajakda bo‘lishi mumkin emas"
+    )
+    .optional(),
+  expiryDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}/, "Sanani YYYY-MM-DD formatida kiriting")
+    .pipe(z.coerce.date())
+    .optional(),
+});
+
+const coachSchema = z.object({});

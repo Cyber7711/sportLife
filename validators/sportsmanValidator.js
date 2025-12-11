@@ -7,7 +7,9 @@ const achievementsSchema = z.object({
   title: z
     .string()
     .min(3, "Yutuq nomi kamida 3 ta belgidan iborat bulishi zarur")
-    .max(100, "Yutuq nomi 100 ta belgidan oshmasligi kerak"),
+    .max(100, "Yutuq nomi 100 ta belgidan oshmasligi kerak")
+    .trim()
+    .transform(sanitizeString),
   year: z
     .number()
     .int()
@@ -15,11 +17,15 @@ const achievementsSchema = z.object({
     .max(
       new Date().getFullYear() + 1,
       "Kelajakdagi yutuqlarni kiritib bulmaydi"
-    ),
+    )
+    .int(),
+
   description: z
     .string()
     .max(300, "Tavsif 300 belgidan oshmasligi kerak")
-    .optional(),
+    .trim()
+    .optional()
+    .transform(sanitizeString),
   verified: z.boolean().optional().default(false),
 });
 
