@@ -30,7 +30,11 @@ const getById = catchAsync(async (req, res) => {
 });
 
 const update = catchAsync(async (req, res) => {
-  const result = await SportsmanService.update(req.params.id, req.body);
+  const result = await SportsmanService.update(
+    req.params.id,
+    req.body,
+    req.user
+  );
   sendResponse(res, {
     status: 200,
     message: "Sportchi muvaffaqiyatli yangilandi",
@@ -39,7 +43,7 @@ const update = catchAsync(async (req, res) => {
 });
 
 const deleted = catchAsync(async (req, res) => {
-  const result = await SportsmanService.delete(req.params.id);
+  const result = await SportsmanService.delete(req.params.id, req.user);
   res.status(204).send();
 });
 

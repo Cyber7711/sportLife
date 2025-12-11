@@ -1,34 +1,22 @@
 const jwt = require("jsonwebtoken");
 const User = require("../model/user");
 const AppError = require("../utils/appError");
+const cookie = require("cookies");
 const { createAccessToken, createRefreshToken } = require("../utils/token");
 
 const register = async (req, res, next) => {
   try {
-    const { name, surename, phone, email, password, role } = req.body;
-    const missingFields = [];
+    const registerSchema = require("../validators/authValidator");
 
-    if (!email) missingFields.push("email");
-    if (!surename) missingFields.push("surename");
-    if (!phone) missingFields.push("phone");
-    if (!name) missingFields.push("name");
-    if (!password) missingFields.push("password");
-    if (!role) missingFields.push("role");
-
-    if (missingFields.length > 0) {
-      throw new AppError(
-        `Quyidagi maydon(lar) tuldirilmagan: ${missingFields.join(", ")}`,
-        400
-      );
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const errors = parsed.error.errors.map((e) => e.message).join(" | ");
+      throw new AppError(errors, 400);
     }
-    const user = await User.create({
-      name,
-      surename,
-      phone,
-      email,
-      password,
-      role,
-    });
+
+    const { passwordConfirm, ...userData } = parsed.data;
+
+    const user = await User.create(userData);
 
     const accessToken = createAccessToken(user._id);
     const refreshToken = createRefreshToken(user._id);
@@ -65,6 +53,12 @@ const login = async (req, res, next) => {
     const accessToken = createAccessToken(user._id);
     const refreshToken = createRefreshToken(user._id);
 
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
     res.status(200).json({
       status: "success",
       accessToken,
