@@ -61,4 +61,55 @@ const licenseSchema = z.object({
     .optional(),
 });
 
-const coachSchema = z.object({});
+const createCoachSchema = z
+  .object({
+    user: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, "Foydalanuvchini ID si notugri formatda"),
+    experience: z
+      .number()
+      .int("Tagriba butun son bulishi kerak")
+      .min(0, "Tajriba 0 an kam bulmasligi kerak")
+      .max(50, "Yajriba 60 dan yuqori bulmasligi kerak"),
+    specialization: z
+      .string()
+      .min(5, "Ixtisos kamida 5 ta belgi bulishi kerak")
+      .max(100)
+      .trim()
+      .transform(sanitizeString),
+    sportType: z.array(z.enum(SPORT_TYPES)),
+    bio: z.string().max(500).trim().transform(sanitizeString).optional(),
+    achievements: z.array(achievementsSchema).max(50).default([]).optional(),
+    contact: z
+      .object({
+        phone: z.string().max(20).optional(),
+        telegram: z
+          .string()
+          .max(50)
+          .trim()
+          .transform(sanitizeString)
+          .optional(),
+      })
+      .optional(),
+    license: licenseSchema.optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.license?.issueDate && data.license?.expiryDate) {
+        return data.license.expiryDate > data.license.issueDate;
+      }
+      return true;
+    },
+    {
+      message:
+        "Litsenziya muddati tugash sanasi berilgan sanadan oldin bo‘lishi mumkin emas",
+      path: ["licese.expiryDate"],
+    }
+  );
+
+const updateCoachSchema = createCoachSchema.partial();
+
+module.exports = {
+  createCoachSchema,
+  updateCoachSchema,
+};

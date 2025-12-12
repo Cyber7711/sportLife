@@ -1,27 +1,56 @@
 const Coach = require("../model/coach");
 
-const baseQuery = () => Coach.find();
+const repo = {
+  create: (data) => Coach.create(data),
 
-const create = (data) => Coach.create(data);
+  findAll: (options = {}) => {
+    const {
+      filter = {},
+      search,
+      populate,
+      select,
+      page = 1,
+      limit = 20,
+      sort = { createdAt: -1 },
+    } = options;
 
-const findAll = (filter = {}) => Coach.find(filter);
+    let query = { ...filter };
 
-const findOne = (filter = {}) => Coach.findOne(filter);
+    if (search) {
+      query.$or = [
+        { specialization: { $regex: search, $options: "i" } },
+        { "license.number": { $regex: search, $option: "i" } },
+      ];
+    }
+    query.isActive = { $ne: false };
 
-const findById = (id) => Coach.findById(id);
+    return Coach.find(query)
+      .populate(populate)
+      .select(select)
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+  },
 
-const update = (id, updateData, options = { new: true }) =>
-  Coach.findOneAndUpdate({ _id: id }, updateData, options);
+  findById: (id, options = {}) =>
+    Coach.findById(id).populate(options.populate).lean(),
 
-const deleteById = (id) =>
-  Coach.findOneAndUpdate({ _id: id }, { isActive: false }, { new: true });
+  findOne: (filter, options = {}) =>
+    Coach.findOne({ ...filter, isActive: true })
+      .populate(options.populate)
+      .lean(),
 
-module.exports = {
-  baseQuery,
-  create,
-  findAll,
-  findOne,
-  findById,
-  update,
-  deleteById,
+  update: (id, data) =>
+    Coach.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+    }).lean(),
+  softDelete: (id) =>
+    Coach.findByIdAndUpdate(id, { isActive: false }, { new: true }).lean(),
+
+  findByIdRaw: (id, options = {}) =>
+    Coach.findById(id).populate(options.populate).lean(),
 };
+
+module.exports = repo;
