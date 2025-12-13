@@ -43,14 +43,14 @@ const achievementsSchema = z.object({
 });
 
 const licenseSchema = z.object({
-  number: z.number().max(50).trim().toUpperCase().optional(),
+  number: z.string().max(50).trim().toUpperCase().optional(),
   issuedBy: z.string().max(50).trim().transform(sanitizeString).optional(),
   issueDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}/, "Sanani YYYY-MM-DD formatida kiriting")
     .pipe(z.coerce.date())
     .refine(
-      (date) => data <= new Date(),
+      (data) => data <= new Date(),
       "Litsenziya berilgan sana kelajakda bo‘lishi mumkin emas"
     )
     .optional(),
@@ -70,7 +70,7 @@ const createCoachSchema = z
       .number()
       .int("Tagriba butun son bulishi kerak")
       .min(0, "Tajriba 0 an kam bulmasligi kerak")
-      .max(50, "Yajriba 60 dan yuqori bulmasligi kerak"),
+      .max(50, "Yajriba 50 dan yuqori bulmasligi kerak"),
     specialization: z
       .string()
       .min(5, "Ixtisos kamida 5 ta belgi bulishi kerak")
@@ -103,7 +103,7 @@ const createCoachSchema = z
     {
       message:
         "Litsenziya muddati tugash sanasi berilgan sanadan oldin bo‘lishi mumkin emas",
-      path: ["licese.expiryDate"],
+      path: ["license.expiryDate"],
     }
   );
 

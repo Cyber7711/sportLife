@@ -30,36 +30,6 @@ const achievementsSchema = z.object({
 });
 
 const createSportsmanSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Ism kamida 2 ta harfdan iborat bulishi kerak")
-    .max(40, "Ism juda uzun")
-    .trim()
-    .transform(sanitizeString),
-  surname: z
-    .string()
-    .min(2, "Familiya kiritilishi shart")
-    .max(40, "Familiya juda uzun")
-    .trim()
-    .transform(sanitizeString),
-  birthDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Tug‘ilgan sana YYYY-MM-DD formatida bo‘lsin")
-    .refine((date) => {
-      const birth = new Date(date);
-      const today = new Date();
-      const age = today.getFullYear() - birth.getFullYear();
-
-      const m = today.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-        age--;
-      }
-      return age >= 5 && age <= 70;
-    }, "Yosh 5 yoshdan 70 yoshgacha bulishi mumkin"),
-  phone: z
-    .string()
-    .regex(uzPhoneRegrex, "Telefon raqami +998901234567 shaklida bo‘lsin")
-    .optional(),
   sportType: z.enum(
     [
       "Futbol",

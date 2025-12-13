@@ -19,7 +19,7 @@ const repo = {
     if (search) {
       query.$or = [
         { specialization: { $regex: search, $options: "i" } },
-        { "license.number": { $regex: search, $option: "i" } },
+        { "license.number": { $regex: search, $options: "i" } },
       ];
     }
     query.isActive = { $ne: false };
@@ -45,9 +45,9 @@ const repo = {
     Coach.findByIdAndUpdate(id, data, {
       new: true,
       runValidators: true,
-    }).lean(),
+    }),
   softDelete: (id) =>
-    Coach.findByIdAndUpdate(id, { isActive: false }, { new: true }).lean(),
+    Coach.findByIdAndUpdate(id, { isActive: false }, { new: true }),
 
   findByIdRaw: (id, options = {}) =>
     Coach.findById(id).populate(options.populate).lean(),

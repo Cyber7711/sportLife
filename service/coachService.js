@@ -1,162 +1,49 @@
-// const AppError = require("../utils/appError");
-// const mongoose = require("mongoose");
-// const validators = require("../utils/validators");
-// const coachRepository = require("../repositories/coachRepository");
-// const Coach = require("../model/coach");
+const CoachRepo = require("../repositories/coachRepository");
+const AppError = require("../utils/appError");
+const User = require("../model/user");
+const {
+  createCoachSchema,
+  updateCoachSchema,
+} = require("../validators/coachValidator");
 
-// async function createCoach(data) {
-//   const { specialization, experience, sportsman } = data;
-//   const missing = [];
+/** 
+@param {string} coachId
+@param {object} user 
+*/
 
-//   if (!validators.isNonEmptyString(specialization))
-//     missing.push("specialization");
-//   if (!validators.isPositiveNumber(experience)) missing.push("experience");
+async function checkOwnership(coachId, user) {
+  const coach = await CoachRepo.findByIdRaw(coachId);
 
-//   if (missing.length > 0) {
-//     throw new AppError(
-//       `Quyidagi maydon(lar) to'ldirilmagan yoki noto'g'ri: ${missing.join(
-//         ", "
-//       )}`,
-//       400
-//     );
-//   }
+  if (!coach) {
+    throw new AppError("Murabbiy profili topilmadi", 404);
+  }
+  if (!user.role !== "coach") {
+    throw new AppError("Bu amalni bajarishga huquqingiz yoq", 403);
+  }
 
-//   let sportsmanIds;
-//   if (Array.isArray(sportsman) && sportsman.length > 0) {
-//     sportsmanIds = validators.assertSportsmanArray(sportsman);
-//   }
-//   const payload = {
-//     specialization: specialization.trim(),
-//     experience,
-//     ...(sportsmanIds ? { sportsman: sportsmanIds } : {}),
-//     isActive: true,
-//   };
+  if (coach.user.toString() !== user._id.toString()) {
+    throw new AppError(
+      "Siz faqat uzingizning profilingizni tahrirlay olasiz",
+      403
+    );
+  }
+  return coach;
+}
 
-//   const coach = await coachRepository.create(payload);
-//   return coach.toObject();
-// }
+class CoachService {
+  /**
+   * @param {object} data
+   * @param {} userId
+   */
 
-// async function getAllCoaches(options = {}) {
-//   const { page = 1, limit = 20, specialization } = options;
-
-//   const filter = { isActive: true };
-//   if (validators.isNonEmptyString(specialization)) {
-//     filter.specialization = { $regex: specialization.trim(), $options: "i" };
-//   }
-
-//   const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
-
-//   const [items, total] = await Promise.all([
-//     coachRepository
-//       .findAll(filter)
-//       .select("specialization experience sportsman createdAt")
-//       .populate("sportsman", "name email")
-//       .skip(skip)
-//       .limit(Math.max(limit, 1))
-//       .lean(),
-
-//     Coach.countDocuments(filter),
-//   ]);
-
-//   return {
-//     meta: { total, page: Number(page), limit: Number(limit) },
-//     data: items,
-//   };
-// }
-
-// async function getCoachById(id) {
-//   validators.assertValidId(id);
-//   const coach = await coachRepository
-//     .findOne({ _id: id, isActive: true })
-//     .select("-__v")
-//     .populate("sportsman", "name email")
-//     .lean();
-
-//   if (!coach) {
-//     throw new AppError("Bunday murabbiy topilmadi", 404);
-//   }
-//   return coach;
-// }
-
-// async function updateCoach(id, updateData = {}) {
-//   validators.assertValidId(id);
-//   const allowedFields = ["specialization", "experience", "sportsman"];
-//   const filtered = {};
-//   const existing = await coachRepository.findOne({ _id: id, isActive: true });
-
-//   if (!existing) {
-//     throw new AppError("Murabbiy mavjud emas", 404);
-//   }
-
-//   for (const key of allowedFields) {
-//     if (Object.prototype.hasOwnProperty.call(updateData, key)) {
-//       const val = updateData[key];
-//       if (key === "specialization") {
-//         if (!validators.isNonEmptyString(val))
-//           throw new AppError("Specialization notugri", 400);
-//         filtered.specialization = val.trim();
-//       } else if (key === "experience") {
-//         if (typeof val !== "number" || !Number.isFinite(val) || val < 1) {
-//           throw new AppError("Experience notugri", 400);
-//         }
-//         filtered.experience = val;
-//       } else if (key === "sportsman") {
-//         if (!Array.isArray(val))
-//           throw new AppError("Sportchi array bulishi kerak", 400);
-//         filtered.sportsman = val.map((s) => {
-//           if (!mongoose.Types.ObjectId.isValid(s)) {
-//             throw new AppError(
-//               "Sportsman array ichida noto'g'ri ObjectId mavjud",
-//               400
-//             );
-//           }
-//           return mongoose.Types.ObjectId(s);
-//         });
-//       }
-//     }
-//   }
-
-//   if (Object.keys(filtered).length === 0) {
-//     throw new AppError("Yangilanish uchun hech qanday maydonlar topilmadi");
-//   }
-
-//   const coach = await coachRepository
-//     .update(id, filtered, {
-//       new: true,
-//       runValidators: true,
-//     })
-//     .populate("sportsman", "name email");
-
-//   if (!coach) {
-//     throw new AppError(
-//       "Murabbiyni yangilashda xatolik yoki murabbiy mavjud emas",
-//       404
-//     );
-//   }
-//   return coach.toObject();
-// }
-
-// async function deleteCoach(id) {
-//   validators.assertValidId(id);
-
-//   const coach = await coachRepository.findOne({ _id: id, isActive: true });
-//   if (!coach) throw new AppError("Murabbiy mavjud emas", 404);
-//   const deleted = await coachRepository.deleteById(id);
-//   if (!deleted) {
-//     throw new AppError(
-//       "Murabbiyni uchirishda xatolik yoki murabbiy mavjuda emas ",
-//       404
-//     );
-//   }
-//   return { message: "Murabbiy muvaffaqiyatli uchirildi" };
-// }
-
-// const CoachService = {
-//   createCoach,
-//   getAllCoaches,
-//   getCoachById,
-//   updateCoach,
-//   deleteCoach,
-// };
-
-// module.exports = CoachService;
+  static async create(data, userId) {
+    const user = await User.findById(userId);
+    if (!user || user.role !== "coach" || user.isActive === false) {
+      throw new AppError(
+        "Coach profilini yaratish uchun ruxsat berilgan. Rolingizni tekshiring",
+        403
+      );
+    }
+    const existingCoach = await CoachRepo.findOne({ user: userId });
+  }
+}

@@ -1,7 +1,7 @@
 const { z } = require("zod");
 const sanitizeString = require("../utils/validator");
 
-const uzPhoneRegex = /^\+998(33|55|77|88|90|91|93|94|95|97|98|99)\d{7}$/;
+const uzPhoneRegex = /^\+998\d{9}$/;
 
 const registerSchema = z.object({
   name: z
@@ -16,6 +16,20 @@ const registerSchema = z.object({
     .max(30)
     .trim()
     .transform(sanitizeString),
+  birthDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Tug‘ilgan sana YYYY-MM-DD formatida bo‘lsin")
+    .refine((date) => {
+      const birth = new Date(date);
+      const today = new Date();
+      const age = today.getFullYear() - birth.getFullYear();
+
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      return age >= 5 && age <= 70;
+    }, "Yosh 5 yoshdan 70 yoshgacha bulishi mumkin"),
   phone: z
     .string()
     .regex(uzPhoneRegex, "Telefon raqami +998901234567 shaklida bulishi kerak")

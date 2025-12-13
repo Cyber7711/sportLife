@@ -22,24 +22,11 @@ const achievementsSchema = new mongoose.Schema(
     },
     verified: { type: Boolean, default: false },
   },
-  { timestamps: true, _id: true },
+  { timestamps: true, _id: true }
 );
 
 const sportsmanSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true, minlength: 2 },
-    surname: { type: String, required: true, trim: true, minlength: 2 },
-    birthDate: {
-      type: Date,
-      required: [true, "Tug'ilgan sana kiritilishi shart"],
-    },
-    phone: {
-      type: String,
-      match: /^\+998\d{9}$/,
-      sparse: true,
-      unique: true,
-    },
-
     sportType: {
       type: String,
       required: true,
@@ -108,7 +95,7 @@ const sportsmanSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  },
+  }
 );
 
 // === INDEXES ===
@@ -117,21 +104,10 @@ sportsmanSchema.index({ sportType: 1 });
 sportsmanSchema.index({ createdAt: -1 });
 sportsmanSchema.index({ "achievements.year": -1 });
 
-// === VIRTUAL ===
-sportsmanSchema.virtual("age").get(function () {
-  if (!this.birthDate) return null;
-  const today = new Date();
-  let age = today.getFullYear() - this.birthDate.getFullYear();
-  const m = today.getMonth() - this.birthDate.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < this.birthDate.getDate())) age--;
-  return age;
-});
-
-// === METHOD ===
 sportsmanSchema.methods.getPublicProfile = function () {
   const obj = this.toObject();
   delete obj.isActive;
-  delete obj.medicalInfo; // oddiy odam ko‘rmasin
+  delete obj.medicalInfo;
   delete obj.__v;
   return obj;
 };
@@ -157,7 +133,7 @@ sportsmanSchema.pre("findOneAndUpdate", async function (next) {
     if (sportsman && !sportsman.coach.equals(update.coach)) {
       await mongoose.model("Coach").updateOne(
         { _id: sportsman.coach },
-        { $pull: { sportsmen: sportsman._id } }, // esda qolsin: Coach modelida sportsmen emas, sportsmen!
+        { $pull: { sportsmen: sportsman._id } } // esda qolsin: Coach modelida sportsmen emas, sportsmen!
       );
     }
   }
