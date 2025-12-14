@@ -1,8 +1,6 @@
 const { z } = require("zod");
 const sanitizeString = require("../utils/validator");
 
-const uzPhoneRegrex = /^\+998(33|55|77|88|90|91|93|94|95|97|98|99)\d{7}$/;
-
 const achievementsSchema = z.object({
   title: z
     .string()
@@ -52,6 +50,9 @@ const createSportsmanSchema = z.object({
   coach: z
     .string()
     .regex(/^[0-9a-fA-F]{24}$/, "Murabbiy ID si noto‘g‘ri formatda"),
+  parent: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, "Parent ID si noto‘g‘ri formatda"),
   height: z
     .number()
     .min(100, "Bo‘y 100 sm dan kam bo‘lmasligi kerak")

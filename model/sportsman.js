@@ -13,7 +13,12 @@ const achievementsSchema = new mongoose.Schema(
     year: {
       type: Number,
       min: 1940,
-      max: new Date().getFullYear() + 1,
+      validate: {
+        function(val) {
+          return val <= new Date().getFullYear() + 1;
+        },
+        message: "Yil kelajakdagi juda uzoq  sana bulishi mumkin emas",
+      },
     },
     description: {
       type: String,
@@ -22,7 +27,7 @@ const achievementsSchema = new mongoose.Schema(
     },
     verified: { type: Boolean, default: false },
   },
-  { timestamps: true, _id: true }
+  { timestamps: true }
 );
 
 const sportsmanSchema = new mongoose.Schema(
@@ -57,7 +62,11 @@ const sportsmanSchema = new mongoose.Schema(
     coach: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Coach",
-      required: true,
+      required: [true, "Murabbiy Tanlanishi kerak"],
+    },
+    parent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
 
     height: { type: Number, required: true, min: 100, max: 230 },
@@ -89,7 +98,6 @@ const sportsmanSchema = new mongoose.Schema(
     },
 
     isActive: { type: Boolean, default: true, select: false },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   {
     timestamps: true,
@@ -98,7 +106,24 @@ const sportsmanSchema = new mongoose.Schema(
   }
 );
 
-// === INDEXES ===
+sportsmanSchema.pre("save", async function (next) {
+  if (this.isModified("coach")) {
+    const Coach = mongoose.models.Coach || mongoose.model("Coach");
+    const haveCoach = await Coach.findOne({ _id: this.coach, isActive: true });
+    if (!haveCoach)
+      return next(new AppError("Murabbiy topilmadi yoki faol emas", 400));
+  }
+
+  if (this.parent && this.isModified("parent")) {
+    const User = mongoose.models.User || mongoose.model("User");
+    const haveParent = await User.findOne({ _id: this.parent, isActive: true });
+    if (!haveParent)
+      return next(
+        new AppError("Ota-ona (Parent) topilmadi yoki faol emas", 400)
+      );
+  }
+});
+
 sportsmanSchema.index({ coach: 1 });
 sportsmanSchema.index({ sportType: 1 });
 sportsmanSchema.index({ createdAt: -1 });
@@ -111,33 +136,5 @@ sportsmanSchema.methods.getPublicProfile = function () {
   delete obj.__v;
   return obj;
 };
-
-// === PRE SAVE → Coach bilan bog‘lash (lekin transaction bilan emas, chunki MongoDB 4.0+ kerak emas) ===
-sportsmanSchema.pre("save", async function (next) {
-  if (this.isModified("coach") || this.isNew) {
-    const Coach = mongoose.model("Coach");
-    const coach = await Coach.findOne({ _id: this.coach, isActive: true });
-
-    if (!coach) {
-      return next(new AppError("Murabbiy topilmadi yoki faol emas", 400));
-    }
-  }
-  next();
-});
-
-// Agar coach o‘zgarsa → eski coachdan o‘chirish
-sportsmanSchema.pre("findOneAndUpdate", async function (next) {
-  const update = this.getUpdate();
-  if (update.coach) {
-    const sportsman = await this.model.findOne(this.getQuery());
-    if (sportsman && !sportsman.coach.equals(update.coach)) {
-      await mongoose.model("Coach").updateOne(
-        { _id: sportsman.coach },
-        { $pull: { sportsmen: sportsman._id } } // esda qolsin: Coach modelida sportsmen emas, sportsmen!
-      );
-    }
-  }
-  next();
-});
 
 module.exports = mongoose.model("Sportsman", sportsmanSchema);

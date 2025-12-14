@@ -1,12 +1,10 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
-const User = require("./user"); // relation uchun
-const Sportsman = require("./sportsman"); // relation uchun
+const User = require("./user");
+const Sportsman = require("./sportsman");
 
-// === Coach schema boshlanishi ===
 const coachSchema = new mongoose.Schema(
   {
-    // Tajriba (yillarda)
     experience: {
       type: Number,
       required: [true, "Murabbiy tajribasi (yillarda) kiritilishi shart"],
@@ -18,7 +16,6 @@ const coachSchema = new mongoose.Schema(
       },
     },
 
-    // Ixtisoslashuv
     specialization: {
       type: String,
       required: [true, "Ixtisoslashuv kiritilishi shart"],
@@ -27,7 +24,6 @@ const coachSchema = new mongoose.Schema(
       maxlength: [100, "Ixtisos juda uzun"],
     },
 
-    // Sport turlari
     sportTypes: [
       {
         type: String,
@@ -51,7 +47,6 @@ const coachSchema = new mongoose.Schema(
       },
     ],
 
-    // Sportchilar bilan relation
     sportsman: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -59,7 +54,6 @@ const coachSchema = new mongoose.Schema(
       },
     ],
 
-    // Licenziya ma'lumotlari
     license: {
       number: { type: String, trim: true, uppercase: true, sparse: true },
       issuedBy: { type: String, trim: true },
@@ -74,7 +68,6 @@ const coachSchema = new mongoose.Schema(
       totalReviews: { type: Number, default: 0 },
     },
 
-    // User bilan relation
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -82,14 +75,12 @@ const coachSchema = new mongoose.Schema(
       unique: true,
     },
 
-    // Faoliyat holati
     isActive: {
       type: Boolean,
       default: true,
-      select: false, // oddiy foydalanuvchiga ko‘rinmasin
+      select: false,
     },
 
-    // Qo‘shimcha ma'lumotlar
     bio: { type: String, trim: true, maxlength: 1000 },
 
     achievements: [
@@ -101,7 +92,6 @@ const coachSchema = new mongoose.Schema(
       },
     ],
 
-    // Kontakt
     contact: {
       phone: {
         type: String,
@@ -129,12 +119,10 @@ coachSchema.index({ isActive: 1 });
 coachSchema.index({ experience: -1 });
 coachSchema.index({ "rating.average": -1 });
 
-// Sportchilar soni
 coachSchema.virtual("totalSportsman").get(function () {
   return this.sportsman?.length || 0;
 });
 
-// Yoshni hisoblash (User modeldan populate qilingan birthDate bilan)
 coachSchema.virtual("age").get(function () {
   if (!this.user?.birthDate) return null;
   const today = new Date();

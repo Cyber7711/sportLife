@@ -62,7 +62,7 @@ app.use(
     },
     credentials: true,
     optionsSuccessStatus: 200,
-  }),
+  })
 );
 
 // ================================
@@ -76,7 +76,7 @@ app.use(
   helmet({
     contentSecurityPolicy: process.env.NODE_ENV === "production",
     crossOriginEmbedderPolicy: process.env.NODE_ENV !== "production",
-  }),
+  })
 );
 
 app.use(hpp()); // Parameter pollution himoyasi
@@ -105,7 +105,7 @@ fs.readdirSync(routesPath)
     (file) =>
       file.endsWith("Routes.js") &&
       !file.startsWith("auth") &&
-      file !== "index.js",
+      file !== "index.js"
   )
   .forEach((file) => {
     const routeName = file
