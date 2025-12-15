@@ -14,7 +14,7 @@ const achievementsSchema = new mongoose.Schema(
       type: Number,
       min: 1940,
       validate: {
-        function(val) {
+        validator: function (val) {
           return val <= new Date().getFullYear() + 1;
         },
         message: "Yil kelajakdagi juda uzoq  sana bulishi mumkin emas",
@@ -66,7 +66,7 @@ const sportsmanSchema = new mongoose.Schema(
     },
     parent: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Parent",
     },
 
     height: { type: Number, required: true, min: 100, max: 230 },
@@ -137,4 +137,6 @@ sportsmanSchema.methods.getPublicProfile = function () {
   return obj;
 };
 
-module.exports = mongoose.model("Sportsman", sportsmanSchema);
+const Sportsman = mongoose.model("Sportsman", sportsmanSchema);
+
+module.exports = Sportsman;

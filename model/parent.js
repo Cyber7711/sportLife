@@ -17,4 +17,12 @@ const parentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+parentSchema.index({ user: 1 });
+
+parentSchema.virtual("sportsmanChildren", {
+  ref: "Sportsman",
+  localField: "user",
+  foreignField: "parent",
+});
+
 const Parent = mongoose.model("Parent", parentSchema);
