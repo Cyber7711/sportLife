@@ -21,6 +21,9 @@ const {
   resetPasswordLimiter,
 } = require("./utils/rateLimiter");
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // ================================
 // 1) DB ulanish
 // ================================
@@ -79,7 +82,7 @@ app.use(
   })
 );
 
-app.use(hpp()); // Parameter pollution himoyasi
+app.use(hpp());
 
 // Morgan — faqat devda
 if (process.env.NODE_ENV === "development") {
@@ -89,11 +92,7 @@ if (process.env.NODE_ENV === "development") {
 // ================================
 // 5) Auth Routes + Rate Limiting
 // ================================
-app.use("/auth/register", registerLimiter(), authRoutes);
-app.use("/auth/login", loginLimiter(), authRoutes);
-app.use("/auth/forgot-password", resetPasswordLimiter(), authRoutes);
-app.use("/auth/reset-password", resetPasswordLimiter(), authRoutes);
-app.use("/auth", authRoutes); // qolganlari (me, logout, change-password)
+app.use("/auth", authRoutes);
 
 // ================================
 // 6) Dynamic API Routes

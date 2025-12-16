@@ -1,13 +1,12 @@
 const express = require("express");
 const router = express.Router();
-module.exports = router;
 const { protect, restrictTo } = require("../middleware/protect");
 const SportsmanController = require("../controller/sportsmanController");
 
 router
   .route("/")
   .get(protect, SportsmanController.getAll)
-  .post(protect, restrictTo("admin", "coach"), SportsmanController.create);
+  .post(protect, SportsmanController.create);
 
 router
   .route("/:id")

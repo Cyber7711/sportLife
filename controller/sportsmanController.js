@@ -44,7 +44,10 @@ const update = catchAsync(async (req, res) => {
 
 const deleted = catchAsync(async (req, res) => {
   const result = await SportsmanService.delete(req.params.id, req.user);
-  res.status(204).send();
+  sendResponse(res, {
+    status: 204,
+    message: "Sportchi muvaffaqiyatli uchirildi",
+  });
 });
 
 const SportsmanController = {
@@ -56,8 +59,3 @@ const SportsmanController = {
 };
 
 module.exports = SportsmanController;
-
-// https://www.instagram.com/reel/DPybfIdj_Z3/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
-// https://www.instagram.com/reel/DQUDyyADcJV/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
-// https://www.instagram.com/reel/DL_caZMI83q/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
-// https://www.instagram.com/reel/DRBZbWTiPi3/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==
