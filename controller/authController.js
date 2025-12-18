@@ -6,7 +6,6 @@ const registerSchema = require("../validators/authValidator");
 
 const register = async (req, res, next) => {
   try {
-    // 1. Foydalanuvchi ma'lumotlarini tekshirish
     const parsed = registerSchema.safeParse(req.body || {});
     if (!parsed.success) {
       const errors =
@@ -17,7 +16,6 @@ const register = async (req, res, next) => {
 
     const { passwordConfirm, ...userData } = parsed.data;
 
-    // 2. Email yoki phone orqali mavjud foydalanuvchini tekshirish
     const exists = await User.findOne({
       $or: [{ email: userData.email }, { phone: userData.phone }],
     });
@@ -25,22 +23,18 @@ const register = async (req, res, next) => {
       throw new AppError("Foydalanuvchi allaqachon mavjud", 409);
     }
 
-    // 3. Yangi user yaratish
     const user = await User.create(userData);
 
-    // 4. Tokenlar yaratish
     const accessToken = createAccessToken(user._id);
     const refreshToken = createRefreshToken(user._id);
 
-    // 5. Refresh token cookie ga joylash
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 kun
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // 6. Javob qaytarish
     res.status(201).json({
       status: "success",
       accessToken,

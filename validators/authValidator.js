@@ -37,9 +37,14 @@ const registerSchema = z
         uzPhoneRegex,
         "Telefon raqami +998901234567 shaklida bulishi kerak"
       )
-      .transform(sanitizeString)
+      .transform((val) => (val ? sanitizeString(val) : val))
       .optional(),
-    email: z.string().email("Email noto‘g‘ri formatda").trim().optional(),
+    email: z
+      .string()
+      .email("Email noto‘g‘ri formatda")
+      .trim()
+      .transform((val) => (val ? sanitizeString(val) : val))
+      .optional(),
     password: z
       .string()
       .min(8, "Parol kamida 8 belgi bo‘lishi shart")
@@ -49,9 +54,10 @@ const registerSchema = z
       .transform(sanitizeString),
     passwordConfirm: z
       .string()
-      .min(8, "Parolni tasdiqlash uchun kiritilishi shart"),
+      .min(8, "Parolni tasdiqlash uchun kiritilishi shart")
+      .transform(sanitizeString),
     role: z
-      .enum(["admin", "parent", "coach"], { message: "Notugri rol tanlandi" })
+      .enum(["parent", "coach"], { message: "Notugri rol tanlandi" })
       .default("parent"),
   })
   .superRefine((data, ctx) => {
