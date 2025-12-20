@@ -17,7 +17,7 @@ async function checkOwnership(coachId, user) {
   if (!coach) {
     throw new AppError("Murabbiy profili topilmadi", 404);
   }
-  if (!user.role !== "coach") {
+  if (user.role !== "coach") {
     throw new AppError("Bu amalni bajarishga huquqingiz yoq", 403);
   }
 
@@ -31,19 +31,57 @@ async function checkOwnership(coachId, user) {
 }
 
 class CoachService {
-  /**
-   * @param {object} data
-   * @param {} userId
-   */
-
   static async create(data, userId) {
     const user = await User.findById(userId);
     if (!user || user.role !== "coach" || user.isActive === false) {
-      throw new AppError(
-        "Coach profilini yaratish uchun ruxsat berilgan. Rolingizni tekshiring",
-        403
-      );
+      throw new AppError("Murabbiy profilini yaratish uchun ruxsat yo'q.", 403);
     }
-    const existingCoach = await CoachRepo.findOne({ user: userId });
+
+    const existingCoach = await repo.findOne({ user: userId });
+    if (existingCoach) {
+      throw new AppError("Sizda allaqachon murabbiy profili mavjud", 400);
+    }
+
+    const coachData = { ...data, user: userId };
+    return await repo.create(coachData);
+  }
+  static async getAll(queryParams) {
+    const { page, limit, search, specialization, sportType } = queryParams;
+
+    const filter = {};
+    if (specialization) filter.specialization = specialization;
+    if (sportType) filter.sportTypes = { $in: [sportType] };
+
+    const coaches = await repo.findAll({
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 20,
+      search,
+      filter,
+      populate: { path: "user", select: "fullName email phone" },
+    });
+
+    return coaches;
+  }
+  static async getById(id) {
+    const coach = await repo.findById(id, {
+      populate: { path: "user", select: "fullName email phone" },
+    });
+
+    if (!coach) throw new AppError("Murabbiy topilmadi", 404);
+    return coach;
+  }
+  static async update(id, data, user) {
+    await checkOwnership(id, user);
+
+    return await repo.update(id, data);
+  }
+  static async delete(id, user) {
+    if (user.role !== "admin") {
+      await checkOwnership(id, user);
+    }
+
+    return await repo.softDelete(id);
   }
 }
+
+module.exports = CoachService;

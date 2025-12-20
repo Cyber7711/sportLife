@@ -10,13 +10,13 @@ const registerSchema = z
       .min(2, "Ism 2 ta harfdan kam bulmasligi kerak")
       .max(30)
       .trim()
-      .transform(sanitizeString),
+      .transform((val) => sanitizeString(val)),
     surname: z
       .string()
       .min(2, "Familiya 2 ta harfdan kam bulmasligi kerak")
       .max(30)
       .trim()
-      .transform(sanitizeString),
+      .transform((val) => sanitizeString(val)),
     birthDate: z
       .string()
       .regex(
@@ -39,12 +39,7 @@ const registerSchema = z
       )
       .transform((val) => (val ? sanitizeString(val) : val))
       .optional(),
-    email: z
-      .string()
-      .email("Email noto‘g‘ri formatda")
-      .trim()
-      .transform((val) => (val ? sanitizeString(val) : val))
-      .optional(),
+    email: z.string().email("Email notugri").trim().toLowerCase(),
     password: z
       .string()
       .min(8, "Parol kamida 8 belgi bo‘lishi shart")

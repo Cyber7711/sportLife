@@ -49,10 +49,12 @@ const createSportsmanSchema = z.object({
   ),
   coach: z
     .string()
-    .regex(/^[0-9a-fA-F]{24}$/, "Murabbiy ID si noto‘g‘ri formatda"),
+    .regex(/^[0-9a-fA-F]{24}$/, "Murabbiy ID si noto‘g‘ri formatda")
+    .optional(),
   parent: z
     .string()
-    .regex(/^[0-9a-fA-F]{24}$/, "Parent ID si noto‘g‘ri formatda"),
+    .regex(/^[0-9a-fA-F]{24}$/, "Parent ID si noto‘g‘ri formatda")
+    .optional(),
   height: z
     .number()
     .min(100, "Bo‘y 100 sm dan kam bo‘lmasligi kerak")

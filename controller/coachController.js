@@ -3,7 +3,7 @@ const catchAsync = require("../middleware/asyncWrapper");
 const sendResponse = require("../middleware/sendResponse");
 
 const createCoach = catchAsync(async (req, res) => {
-  const result = await CoachService.createCoach(req.body);
+  const result = await CoachService.create(req.body);
   sendResponse(res, {
     status: 201,
     message: "Murabbiy muvaffaqiyatli yaratildi",
@@ -12,7 +12,7 @@ const createCoach = catchAsync(async (req, res) => {
 });
 
 const getAllCoaches = catchAsync(async (req, res) => {
-  const result = await CoachService.getAllCoaches(req.query);
+  const result = await CoachService.getAll(req.query);
 
   sendResponse(res, {
     status: 200,
@@ -24,7 +24,7 @@ const getAllCoaches = catchAsync(async (req, res) => {
 });
 
 const getCoachById = catchAsync(async (req, res) => {
-  const result = await CoachService.getCoachById(req.params.id);
+  const result = await CoachService.getById(req.params.id);
   sendResponse(res, {
     status: 200,
     message: "Murabbiy muvaffaqiyatli olindi",
@@ -33,7 +33,7 @@ const getCoachById = catchAsync(async (req, res) => {
 });
 
 const updateCoach = catchAsync(async (req, res) => {
-  const result = await CoachService.updateCoach(req.params.id, req.body);
+  const result = await CoachService.update(req.params.id, req.body);
   sendResponse(res, {
     status: 200,
     message: "Murabbiy muvaffaqiyatli yangilandi",
@@ -42,7 +42,7 @@ const updateCoach = catchAsync(async (req, res) => {
 });
 
 const deleteCoach = catchAsync(async (req, res) => {
-  await CoachService.deleteCoach(req.params.id);
+  await CoachService.delete(req.params.id);
 
   res.status(204).set("X-Message", "Murabbiy muvaffaqiyatli uchirildi").end();
 });

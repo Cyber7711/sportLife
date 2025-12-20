@@ -3,105 +3,113 @@ const User = require("../model/user");
 const AppError = require("../utils/appError");
 const { createAccessToken, createRefreshToken } = require("../utils/token");
 const registerSchema = require("../validators/authValidator");
+const catchAsync = require("../middleware/asyncWrapper");
 
-const register = async (req, res, next) => {
-  try {
-    const parsed = registerSchema.safeParse(req.body || {});
-    if (!parsed.success) {
-      const errors =
-        parsed.error?.errors?.map((e) => e.message).join(" | ") ||
-        "Xatolik yuz berdi";
-      throw new AppError(errors, 400);
-    }
-
-    const { passwordConfirm, ...userData } = parsed.data;
-
-    const exists = await User.findOne({
-      $or: [{ email: userData.email }, { phone: userData.phone }],
-    });
-    if (exists) {
-      throw new AppError("Foydalanuvchi allaqachon mavjud", 409);
-    }
-
-    const user = await User.create(userData);
-
-    const accessToken = createAccessToken(user._id);
-    const refreshToken = createRefreshToken(user._id);
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.status(201).json({
-      status: "success",
-      accessToken,
-      data: { id: user._id, role: user.role },
-    });
-  } catch (err) {
-    next(err);
+const register = catchAsync(async (req, res, next) => {
+  const parsed = registerSchema.safeParse(req.body || {});
+  if (!parsed.success) {
+    const errors = parsed.error.errors.map((e) => e.message).join(" | ");
+    return next(new AppError(errors, 400));
   }
-};
 
-const login = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      throw new AppError("Email va parolni kiriting", 400);
-    }
-    const user = await User.findOne({ email }).select("+password");
+  const { passwordConfirm, birthDate, ...userData } = parsed.data;
 
-    if (!user || !(await user.comparePassword(password))) {
-      throw new AppError("Noto'g'ri elektron pochta yoki parol", 401);
-    }
+  const exists = await User.findOne({
+    $or: [{ email: userData.email }, { phone: userData.phone }],
+  });
+  if (exists)
+    return next(
+      new AppError("Email yoki telefon allaqachon ro'yxatdan o'tgan", 409)
+    );
 
-    const accessToken = createAccessToken(user._id);
-    const refreshToken = createRefreshToken(user._id);
+  userData.birthDate = new Date(birthDate);
+  const user = await User.create(userData);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    res.status(200).json({
-      status: "success",
-      accessToken,
-      data: { id: user._id, role: user.role },
-    });
-  } catch (err) {
-    next(err);
+  const accessToken = createAccessToken(user._id);
+  const refreshToken = createRefreshToken(user._id);
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.status(201).json({
+    status: "success",
+    accessToken,
+    data: {
+      user: {
+        id: user._id,
+        role: user.role,
+        fullName: user.fullName,
+      },
+    },
+  });
+});
+
+const login = catchAsync(async (req, res, next) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return next(new AppError("Email va parolni kiriting", 400));
   }
-};
 
-const refreshToken = async (req, res, next) => {
-  try {
-    const token = req.cookies.refreshToken;
-    if (!token) throw new AppError("Refresh token mavjud emas", 401);
+  const user = await User.findOne({ email }).select("+password +isActive");
 
-    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-    const user = await User.findById(payload.id);
-    if (!user) throw new AppError("Foydalanuvchi topilmadi", 401);
-
-    const accessToken = createAccessToken(user._id);
-
-    res.status(200).json({ status: "success", accessToken });
-  } catch (err) {
-    return next(err);
+  if (!user || !(await user.comparePassword(password))) {
+    return next(new AppError("Email yoki parol noto'g'ri", 401));
   }
-};
 
-const getMe = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id);
-    res.status(200).json({ status: "success", data: user });
-  } catch (err) {
-    next(err);
+  if (!user.isActive) {
+    return next(new AppError("Sizning hisobingiz bloklangan", 403));
   }
-};
 
-const authController = { register, login, getMe, refreshToken };
+  const accessToken = createAccessToken(user._id);
+  const refreshToken = createRefreshToken(user._id);
 
-module.exports = authController;
+  await User.findByIdAndUpdate(user._id, { lastLoginAt: Date.now() });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.status(200).json({
+    status: "success",
+    accessToken,
+    data: {
+      user: {
+        id: user._id,
+        role: user.role,
+        fullName: user.fullName,
+      },
+    },
+  });
+});
+
+const refreshToken = catchAsync(async (req, res, next) => {
+  const token = req.cookies.refreshToken;
+  if (!token) return next(new AppError("Refresh token mavjud emas", 401));
+
+  const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+  const user = await User.findById(payload.id);
+
+  if (!user || !user.isActive)
+    return next(new AppError("Ruxsat berilmadi", 401));
+
+  const newAccessToken = createAccessToken(user._id);
+
+  res.status(200).json({ status: "success", accessToken: newAccessToken });
+});
+
+const getMe = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Siz tizimga kirmagansiz", 401));
+
+  const user = await User.findById(req.user._id);
+  res.status(200).json({ status: "success", data: { user } });
+});
+
+module.exports = { register, login, getMe, refreshToken };
