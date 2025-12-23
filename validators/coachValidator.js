@@ -63,9 +63,6 @@ const licenseSchema = z.object({
 
 const createCoachSchema = z
   .object({
-    user: z
-      .string()
-      .regex(/^[0-9a-fA-F]{24}$/, "Foydalanuvchini ID si notugri formatda"),
     experience: z
       .number()
       .int("Tagriba butun son bulishi kerak")

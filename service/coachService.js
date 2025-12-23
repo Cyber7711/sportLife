@@ -1,4 +1,4 @@
-const CoachRepo = require("../repositories/coachRepository");
+const repo = require("../repositories/coachRepository"); // Nomi to'g'rilandi
 const AppError = require("../utils/appError");
 const User = require("../model/user");
 const {
@@ -6,24 +6,25 @@ const {
   updateCoachSchema,
 } = require("../validators/coachValidator");
 
-/** 
-@param {string} coachId
-@param {object} user 
-*/
-
+/** * Murabbiy o'zinikini tahrirlayotganini tekshirish
+ */
 async function checkOwnership(coachId, user) {
-  const coach = await CoachRepo.findByIdRaw(coachId);
+  const coach = await repo.findByIdRaw(coachId); // repo deb ishlatildi
 
   if (!coach) {
     throw new AppError("Murabbiy profili topilmadi", 404);
   }
+
+  // Admin bo'lsa tekshirmasdan o'tkazib yuborsa ham bo'ladi
+  if (user.role === "admin") return coach;
+
   if (user.role !== "coach") {
-    throw new AppError("Bu amalni bajarishga huquqingiz yoq", 403);
+    throw new AppError("Bu amalni bajarishga huquqingiz yo'q", 403);
   }
 
   if (coach.user.toString() !== user._id.toString()) {
     throw new AppError(
-      "Siz faqat uzingizning profilingizni tahrirlay olasiz",
+      "Siz faqat o'zingizning profilingizni tahrirlay olasiz",
       403
     );
   }
@@ -33,18 +34,24 @@ async function checkOwnership(coachId, user) {
 class CoachService {
   static async create(data, userId) {
     const user = await User.findById(userId);
+
     if (!user || user.role !== "coach" || user.isActive === false) {
       throw new AppError("Murabbiy profilini yaratish uchun ruxsat yo'q.", 403);
     }
 
+    // Bu yerda repo ishlatildi
     const existingCoach = await repo.findOne({ user: userId });
     if (existingCoach) {
       throw new AppError("Sizda allaqachon murabbiy profili mavjud", 400);
     }
 
-    const coachData = { ...data, user: userId };
+    // Validatsiyani ham shu yerda chaqirib ketish tavsiya etiladi
+    const parsed = createCoachSchema.safeParse(data);
+
+    const coachData = { ...parsed.data, user: userId };
     return await repo.create(coachData);
   }
+
   static async getAll(queryParams) {
     const { page, limit, search, specialization, sportType } = queryParams;
 
@@ -52,16 +59,15 @@ class CoachService {
     if (specialization) filter.specialization = specialization;
     if (sportType) filter.sportTypes = { $in: [sportType] };
 
-    const coaches = await repo.findAll({
+    return await repo.findAll({
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 20,
       search,
       filter,
       populate: { path: "user", select: "fullName email phone" },
     });
-
-    return coaches;
   }
+
   static async getById(id) {
     const coach = await repo.findById(id, {
       populate: { path: "user", select: "fullName email phone" },
@@ -70,11 +76,18 @@ class CoachService {
     if (!coach) throw new AppError("Murabbiy topilmadi", 404);
     return coach;
   }
+
   static async update(id, data, user) {
     await checkOwnership(id, user);
 
-    return await repo.update(id, data);
+    const parsed = updateCoachSchema.safeParse(data);
+    if (!parsed.success) {
+      throw new AppError(parsed.error.errors[0].message, 400);
+    }
+
+    return await repo.update(id, parsed.data);
   }
+
   static async delete(id, user) {
     if (user.role !== "admin") {
       await checkOwnership(id, user);

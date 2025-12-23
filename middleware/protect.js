@@ -1,32 +1,37 @@
 const jwt = require("jsonwebtoken");
-const AppError = require("../utils/appError");
 const User = require("../model/user");
+const AppError = require("../utils/appError");
 
 exports.protect = async (req, res, next) => {
   try {
+    // 1. Header borligini tekshirish
     const header = req.headers.authorization;
     if (!header || !header.startsWith("Bearer ")) {
-      throw new AppError("Token topilmadi", 401);
+      return next(new AppError("Token topilmadi", 401));
     }
+
+    // 2. Tokenni ajratib olish (Endi 'token' o'zgaruvchisi yaratildi)
     const token = header.split(" ")[1];
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(payload.id);
-    if (!user) throw new AppError("Foydalanuvchi topilmadi", 401);
 
-    if (user.passwordChangedAt) {
-      const changedAt = parseInt(user.passwordChangedAt.getTime() / 1000);
-      if (payload.iat < changedAt) {
-        return next(
-          new AppError("Token yaroqsiz. Iltimos qayta login qiling", 401),
-        );
-      }
+    // DEBUG UCHUN (Buni tekshirib bo'lgach o'chirib tashla)
+    console.log("DEBUG - Kelgan Token:", token);
+    console.log("DEBUG - Secret Kalit:", process.env.JWT_ACCESS_SECRET);
+
+    // 3. Tokenni tekshirish
+    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+
+    // 4. Foydalanuvchini topish
+    const user = await User.findById(payload.id);
+    if (!user) {
+      return next(new AppError("Foydalanuvchi topilmadi", 401));
     }
 
+    // 5. Foydalanuvchini so'rovga biriktirish
     req.user = user;
     next();
   } catch (err) {
     if (err.name === "JsonWebTokenError") {
-      return next(new AppError("Token notugri", 401));
+      return next(new AppError("Token noto'g'ri", 401));
     }
     if (err.name === "TokenExpiredError") {
       return next(new AppError("Token muddati tugagan", 401));
@@ -34,7 +39,6 @@ exports.protect = async (req, res, next) => {
     next(err);
   }
 };
-
 exports.restrictTo =
   (...roles) =>
   (req, res, next) => {

@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/protect");
 
-router.post("/", coachController.createCoach);
+router.post("/", protect, coachController.createCoach);
 router.get("/", protect, (req, res, next) => {
   coachController.getAllCoaches(req, res, next);
 });
