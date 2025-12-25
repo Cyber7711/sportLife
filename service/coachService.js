@@ -6,16 +6,13 @@ const {
   updateCoachSchema,
 } = require("../validators/coachValidator");
 
-/** * Murabbiy o'zinikini tahrirlayotganini tekshirish
- */
 async function checkOwnership(coachId, user) {
-  const coach = await repo.findByIdRaw(coachId); // repo deb ishlatildi
+  const coach = await repo.findByIdRaw(coachId);
 
   if (!coach) {
     throw new AppError("Murabbiy profili topilmadi", 404);
   }
 
-  // Admin bo'lsa tekshirmasdan o'tkazib yuborsa ham bo'ladi
   if (user.role === "admin") return coach;
 
   if (user.role !== "coach") {
@@ -39,13 +36,11 @@ class CoachService {
       throw new AppError("Murabbiy profilini yaratish uchun ruxsat yo'q.", 403);
     }
 
-    // Bu yerda repo ishlatildi
     const existingCoach = await repo.findOne({ user: userId });
     if (existingCoach) {
       throw new AppError("Sizda allaqachon murabbiy profili mavjud", 400);
     }
 
-    // Validatsiyani ham shu yerda chaqirib ketish tavsiya etiladi
     const parsed = createCoachSchema.safeParse(data);
 
     const coachData = { ...parsed.data, user: userId };

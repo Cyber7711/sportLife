@@ -38,8 +38,8 @@ async function checkOwnership(sportsmanId, user) {
 
 class SportsmanService {
   static async create(data, userId) {
-    const sportsman = await repo.findOne({ user: userId });
-    if (sportsman) {
+    const existingProfile = await repo.findOne({ user: userId });
+    if (existingProfile) {
       throw new AppError("Sportsman allaqachon yaratilgan", 409);
     }
     const parsed = createSportsmanSchema.safeParse(data);
@@ -47,10 +47,13 @@ class SportsmanService {
       const errors = parsed.error.errors.map((e) => e.message).join(" | ");
       throw new AppError(errors, 400);
     }
-    const coach = await coachRepo.findById(parsed.coach);
-    if (!coach || coach.isActive === false) {
-      throw new AppError("Murabbiy topilmadi yoki faol emas", 404);
+    if (parsed.data.coach) {
+      const coach = await coachRepo.findById(parsed.coach);
+      if (!coach || !coach.isActive) {
+        throw new AppError("Murabbiy topilmadi yoki faol emas", 404);
+      }
     }
+
     return await SportsmanRepo.create({
       ...parsed.data,
       createdBy: userId,

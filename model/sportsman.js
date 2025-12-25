@@ -62,7 +62,6 @@ const sportsmanSchema = new mongoose.Schema(
     coach: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Coach",
-      required: [true, "Murabbiy Tanlanishi kerak"],
     },
     parent: {
       type: mongoose.Schema.Types.ObjectId,

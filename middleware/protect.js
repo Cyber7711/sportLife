@@ -20,13 +20,11 @@ exports.protect = async (req, res, next) => {
     // 3. Tokenni tekshirish
     const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 
-    // 4. Foydalanuvchini topish
     const user = await User.findById(payload.id);
     if (!user) {
       return next(new AppError("Foydalanuvchi topilmadi", 401));
     }
 
-    // 5. Foydalanuvchini so'rovga biriktirish
     req.user = user;
     next();
   } catch (err) {
