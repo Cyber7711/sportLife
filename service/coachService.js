@@ -50,7 +50,7 @@ class CoachService {
   static async getAll(queryParams) {
     const { page, limit, search, specialization, sportType } = queryParams;
 
-    const filter = {};
+    const filter = { isActive: true };
     if (specialization) filter.specialization = specialization;
     if (sportType) filter.sportTypes = { $in: [sportType] };
 

@@ -135,6 +135,11 @@ const userSchema = new mongoose.Schema(
       minlength: 2,
       maxlength: 30,
     },
+    gender: {
+      type: String,
+      enum: ["male", "female"],
+      default: [],
+    },
     birthDate: { type: Date, required: true, max: new Date() },
     email: {
       type: String,

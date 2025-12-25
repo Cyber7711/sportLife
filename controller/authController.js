@@ -4,6 +4,8 @@ const AppError = require("../utils/appError");
 const { createAccessToken, createRefreshToken } = require("../utils/token");
 const registerSchema = require("../validators/authValidator");
 const catchAsync = require("../middleware/asyncWrapper");
+const Coach = require("../model/coach");
+const Sportsman = require("../model/sportsman");
 
 const register = catchAsync(async (req, res, next) => {
   const parsed = registerSchema.safeParse(req.body || {});
@@ -65,6 +67,13 @@ const login = catchAsync(async (req, res, next) => {
     return next(new AppError("Sizning hisobingiz bloklangan", 403));
   }
 
+  let profile = null;
+  if (user.role === "coach") {
+    profile = await Coach.findOne({ user: user._id });
+  } else if (user.role === "sportsman") {
+    profile = await Sportsman.findOne({ user: user._id }).populate("coach");
+  }
+
   const accessToken = createAccessToken(user._id);
   const refreshToken = createRefreshToken(user._id);
 
@@ -85,6 +94,8 @@ const login = catchAsync(async (req, res, next) => {
         id: user._id,
         role: user.role,
         fullName: user.fullName,
+        email: user.email,
+        profile: profile,
       },
     },
   });
@@ -106,10 +117,19 @@ const refreshToken = catchAsync(async (req, res, next) => {
 });
 
 const getMe = catchAsync(async (req, res, next) => {
+  let profile = null;
   if (!req.user) return next(new AppError("Siz tizimga kirmagansiz", 401));
 
+  if (req.user.role === "coach") {
+    profile = await Coach.findOne({ user: req.user._id });
+  } else if (req.user.role === "sportsman") {
+    profile = await Sportsman.findOne({ user: req.user._id });
+  }
+
   const user = await User.findById(req.user._id);
-  res.status(200).json({ status: "success", data: { user } });
+  res
+    .status(200)
+    .json({ status: "success", data: { user: req.user, profile } });
 });
 
 module.exports = { register, login, getMe, refreshToken };

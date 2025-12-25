@@ -31,6 +31,9 @@ const registerSchema = z
         if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
         return age >= 5 && age <= 70;
       }, "Yosh 5 yoshdan 70 yoshgacha bulishi mumkin"),
+    gender: z
+      .enum(["male", "female"], { message: "Noto‘gri gen tanlandi" })
+      .default([]),
     phone: z
       .string()
       .regex(

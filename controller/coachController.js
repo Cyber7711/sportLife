@@ -1,11 +1,11 @@
 const CoachService = require("../service/coachService");
 const catchAsync = require("../middleware/asyncWrapper");
 const sendResponse = require("../middleware/sendResponse");
+const SportsmanService = require("../service/sportsmanService");
 
 const createCoach = catchAsync(async (req, res) => {
   console.log("1. Foydalanuvchi roli:", req.user.role);
 
-  //userId ni ikkinchi argument sifatida uzatish shart!
   const result = await CoachService.create(req.body, req.user._id);
 
   sendResponse(res, {
@@ -27,6 +27,19 @@ const getAllCoaches = catchAsync(async (req, res) => {
   });
 });
 
+const getMySportsmen = catchAsync(async (req, res) => {
+  const result = await SportsmanService.getMySportsmen(req.user._id);
+
+  sendResponse(res, {
+    status: 200,
+    message:
+      result.length > 0
+        ? "Shogirdlaringiz ruyxati olindi"
+        : "Sizda hali shogirdlar mavjud emas",
+    data: result,
+  });
+});
+
 const getCoachById = catchAsync(async (req, res) => {
   const result = await CoachService.getById(req.params.id);
   sendResponse(res, {
@@ -37,7 +50,6 @@ const getCoachById = catchAsync(async (req, res) => {
 });
 
 const updateCoach = catchAsync(async (req, res) => {
-  // Service-ga id, body va user ob'ektini uzatamiz
   const result = await CoachService.update(req.params.id, req.body, req.user);
   sendResponse(res, {
     status: 200,
@@ -47,7 +59,6 @@ const updateCoach = catchAsync(async (req, res) => {
 });
 
 const deleteCoach = catchAsync(async (req, res) => {
-  // Service-ga id va user ob'ektini uzatamiz
   await CoachService.delete(req.params.id, req.user);
   res.status(204).end();
 });
@@ -58,6 +69,7 @@ const coachController = {
   getCoachById,
   updateCoach,
   deleteCoach,
+  getMySportsmen,
 };
 
 module.exports = coachController;

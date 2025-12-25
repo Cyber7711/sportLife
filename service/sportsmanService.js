@@ -83,6 +83,31 @@ class SportsmanService {
 
     return sportsmen;
   }
+  static async getMySportsmen(userId) {
+    const coach = await coachRepo.findOne({ user: userId });
+    if (!coach) {
+      throw new AppError("Murabbit profili topilmadi", 404);
+    }
+    return await SportsmanRepo.findMySportsmen(coach._id);
+  }
+
+  static async assignCoach(sportsmanUserId, coachProfileId) {
+    const coach = coachRepo.findById(coachProfileId);
+    if (!coach || !coach.isActive) {
+      throw new AppError(
+        "Murabbiy topilmadi yoki hozir u yangi shogird ola olmaydi",
+        404
+      );
+    }
+    const updateSportsman = await SportsmanRepo.updateByUserId(
+      sportsmanUserId,
+      coachProfileId
+    );
+    if (!updateSportsman) {
+      throw new AppError("Sportchi profili topilmadi", 404);
+    }
+    return updateSportsman;
+  }
 
   static async getById(id) {
     const sportsman = await SportsmanRepo.findById(id, { populate: "coach" });
